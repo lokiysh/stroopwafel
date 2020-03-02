@@ -556,6 +556,7 @@ class Stroopwafel:
         """
         Refinement phase of stroopwafel
         """
+        refined = False
         while self.num_to_be_refined > 0:
             batches = []
             for batch in range(self.num_batches):
@@ -576,6 +577,8 @@ class Stroopwafel:
                 self.batch_num = self.batch_num + 1
             self.wait_for_completion(batches)
             self.num_to_be_refined -= self.num_batches * self.num_samples_per_batch
+            refined = True
+        if refined:
             print ("\nRefinement phase finished, found %d hits out of %d tried. Rate = %.6f" %(len(self.hits) - len(self.adapted_distributions), (self.num_systems - self.num_explored), (len(self.hits) - len(self.adapted_distributions)) / (self.num_systems - self.num_explored)))
 
     def postprocess(self, filename):
