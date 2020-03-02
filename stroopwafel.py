@@ -446,7 +446,7 @@ class Stroopwafel:
         return (stroopwafel_rate, uncertainity)
 
     #copied from stack overflow
-    def printProgressBar (self, iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', autosize = False):
+    def printProgressBar (self, iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '|', autosize = False):
         """
         Call in a loop to create terminal progress bar
         @params:
