@@ -19,16 +19,14 @@ class Dimension:
     min_value (float): The minimum value this dimension can take
     max_value (float): The maximum value this dimension can take
     sampler (Sampler): type of sampling for this dimension during the exploration phase. It should be from the class Sampler
-    sigma_calculation_method (SigmaCalculationMethod) : defines the function to use to calculate sigma for this variable.
     prior (Prior): A function that will be used to calculate the prior for this dimension
     should_print (bool): If this dimension should be printed to the file
     """
-    def __init__(self, name, min_value = 0, max_value = 0, sampler = None, sigma_calculation_method = None, prior = None, should_print = True):
+    def __init__(self, name, min_value = 0, max_value = 0, sampler = None, prior = None, should_print = True):
         self.name = name
         self.min_value = min_value
         self.max_value = max_value
         self.sampler = sampler
-        self.sigma_calculation_method = sigma_calculation_method
         self.prior = prior
         self.should_print = should_print
     """
@@ -162,11 +160,13 @@ class Gaussian(NDimensionalDistribution):
             gaussians (list(Gaussian)) : list of gaussians drawn
         """
         gaussians = []
+
         for hit in hit_locations:
             sigma = dict()
             for variable, val in hit.dimensions.items():
-                if variable.sigma_calculation_method != None:
-                    sigma[variable] = variable.sigma_calculation_method(variable, average_density_one_dim, hit.dimensions[variable])
+                sigma[variable] = np.power(average_density_one_dim / variable.prior(variable, hit.dimensions[variable]), 2)
+                # if variable.sigma_calculation_method != None: 
+                    # sigma[variable] = variable.sigma_calculation_method(variable, average_density_one_dim, hit.dimensions[variable])
             gaussians.append(Gaussian(hit, Location(sigma, {})))
         return gaussians
 

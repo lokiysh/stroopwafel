@@ -27,10 +27,10 @@ def create_dimensions():
     OUT:
         As Output, this should return a list containing all the instances of Dimension class.
     """
-    m1 = Dimension('Mass_1', 5, 150, Sampler.kroupa, SigmaCalculationMethod.kroupa, Prior.kroupa)
-    q = Dimension('q', 0, 1, Sampler.uniform, SigmaCalculationMethod.usual, Prior.usual, should_print = False)
-    metallicity_1 = Dimension('Metallicity_1', 0, 1, Sampler.uniform, SigmaCalculationMethod.usual, Prior.usual)
-    a = Dimension('Separation', 1, 20, Sampler.power_law, SigmaCalculationMethod.usual, Prior.usual)
+    m1 = Dimension('Mass_1', 5, 150, Sampler.kroupa, Prior.kroupa)
+    q = Dimension('q', 0, 1, Sampler.uniform, Prior.usual, should_print = False)
+    metallicity_1 = Dimension('Metallicity_1', 0, 1, Sampler.uniform, Prior.usual)
+    a = Dimension('Separation', 1, 20, Sampler.power_law, Prior.usual)
     return [m1, q, metallicity_1, a]
 
 def update_properties(locations):
