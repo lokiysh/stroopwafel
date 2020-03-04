@@ -85,7 +85,7 @@ def interesting_systems(batch):
     try:
         double_compact_objects = np.genfromtxt(batch['dco_filename'] + '.csv', delimiter = ',', names=True, skip_header = 2)
         system_parameters = np.genfromtxt(batch['system_params_filename'] + '.csv', delimiter = ',', names = True, skip_header = 2)
-        system_parameters.dtype.names = [sub.replace('ZAMS', '') if sub.find('ZAMS') >= 0 else sub for sub in system_parameters.dtype.names]
+        system_parameters.dtype.names = [sub.replace('ZAMS', '') if system_parameters.dtype.names.count(sub.replace('ZAMS', '')) == 0 else sub for sub in system_parameters.dtype.names]
         systems = system_parameters[np.isin(system_parameters['ID'], double_compact_objects['ID'])]
         locations = []
         for system in systems:
