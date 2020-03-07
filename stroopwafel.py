@@ -191,7 +191,7 @@ class Sampler:
         return np.random.uniform(x, y, num_samples)
     
     @staticmethod
-    def power_law(num_samples, **kwargs):
+    def flat_in_log(num_samples, **kwargs):
         """
         static method to run a power law for the range [x, y), assuming power is -1
         #TODO : make it generic for other powers if required
@@ -204,7 +204,7 @@ class Sampler:
         """
         x = kwargs['x']
         y = kwargs['y']
-        return np.exp(np.random.uniform(0, 1, num_samples) * np.log(y / x)) * x
+        return np.power(10, np.random.uniform(x, y, num_samples))
     
     @staticmethod
     def flat(num_samples, **kwargs):
@@ -233,7 +233,9 @@ class Sampler:
         x = kwargs['x']
         y = kwargs['y']
         return np.power(np.random.uniform(0, 1, num_samples) * (np.power(y, 1 + ALPHA_IMF) - np.power(x, 1 + ALPHA_IMF)) + np.power(x, 1 + ALPHA_IMF), 1 / (1 + ALPHA_IMF))
-
+"""
+## This class will be deprecated soon, please do not use it
+"""
 class SigmaCalculationMethod:
     """
     Defines various ways to calculate sigmas for gaussians
@@ -281,7 +283,7 @@ class Prior:
     This class defines the birth priors of the dimensions
     """
     @staticmethod
-    def usual(dimension, value):
+    def uniform(dimension, value):
         """
         Usual method to calculate priors probability.
         IN:
