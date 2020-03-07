@@ -47,7 +47,10 @@ class Dimension:
         list(bool) : which of the given samples are within the bounds
     """
     def is_sample_within_bounds(self, samples):
-        return (samples >= self.min_value) & (samples <= self.max_value)
+        if self.sampler == Sampler.uniform or self.sampler == Sampler.kroupa:
+            return (samples >= self.min_value) & (samples <= self.max_value)
+        elif self.sampler == Sampler.flat_in_log:
+            return (samples >= np.power(10, float(self.min_value))) & (samples <= np.power(10, float(self.max_value)))
 
 class Location:
     """
@@ -73,6 +76,18 @@ class Location:
         if isinstance(other, Location):
             return self.__key() == other.__key()
         return NotImplemented
+
+    def to_array(self):
+        array = []
+        for dimension in sorted(self.dimensions.keys(), key = lambda d: d.name):
+            array.append(self.dimensions[dimension])
+        return array
+
+    def __str__(self):
+        string = ''
+        for dimension in self.dimensions.keys():
+            string += dimension.name + " : " + str(self.dimensions[dimension]) + ","
+        return string
 
 class NDimensionalDistribution:
     """
@@ -140,13 +155,15 @@ class Gaussian(NDimensionalDistribution):
             if (self.rejection_rate == 1.0):
                 return ([], [])
             num_samples = int(np.ceil(num_samples / (1 - self.rejection_rate)))
-        locations = [Location({}, {}) for i in range(num_samples)]
+        locations = []
         mask = np.ones(num_samples, dtype = bool)
-        for dimension in self.mean.dimensions.keys():
-            current_samples = multivariate_normal.rvs(mean = self.mean.dimensions[dimension], cov = self.sigma.dimensions[dimension], size= num_samples)
-            mask &= dimension.is_sample_within_bounds(current_samples)
-            for index, sample in enumerate(current_samples):
-                locations[index].dimensions[dimension] = sample
+        current_samples = multivariate_normal.rvs(mean = self.mean.to_array(), cov = np.power(self.sigma.to_array(), 2), size = num_samples)
+        for i, sample in enumerate(current_samples):
+            current_location = dict()
+            for index, dimension in enumerate(sorted(self.mean.dimensions.keys(), key = lambda d: d.name)):
+                current_location[dimension] = sample[index]
+                mask[i] &= dimension.is_sample_within_bounds(sample[index])
+            locations.append(Location(current_location, {}))
         return (locations, mask)
 
     @staticmethod
@@ -160,13 +177,10 @@ class Gaussian(NDimensionalDistribution):
             gaussians (list(Gaussian)) : list of gaussians drawn
         """
         gaussians = []
-
         for hit in hit_locations:
             sigma = dict()
             for variable, val in hit.dimensions.items():
-                sigma[variable] = np.power(average_density_one_dim / variable.prior(variable, hit.dimensions[variable]), 2)
-                # if variable.sigma_calculation_method != None: 
-                    # sigma[variable] = variable.sigma_calculation_method(variable, average_density_one_dim, hit.dimensions[variable])
+                sigma[variable] = average_density_one_dim / variable.prior(variable, hit.dimensions[variable])
             gaussians.append(Gaussian(hit, Location(sigma, {})))
         return gaussians
 
