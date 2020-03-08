@@ -52,6 +52,9 @@ class Dimension:
         elif self.sampler == Sampler.flat_in_log:
             return (samples >= np.power(10, float(self.min_value))) & (samples <= np.power(10, float(self.max_value)))
 
+    def __str__(self):
+        return self.name
+
 class Location:
     """
     Describe a point in N-Dimensional space
@@ -157,7 +160,7 @@ class Gaussian(NDimensionalDistribution):
             num_samples = int(np.ceil(num_samples / (1 - self.rejection_rate)))
         locations = []
         mask = np.ones(num_samples, dtype = bool)
-        current_samples = multivariate_normal.rvs(mean = self.mean.to_array(), cov = np.power(self.sigma.to_array(), 2), size = num_samples)
+        current_samples = multivariate_normal.rvs(mean = self.mean.to_array(), cov = np.power(self.kappa * np.asarray(self.sigma.to_array()), 2), size = num_samples)
         for i, sample in enumerate(current_samples):
             current_location = dict()
             for index, dimension in enumerate(sorted(self.mean.dimensions.keys(), key = lambda d: d.name)):
@@ -308,6 +311,11 @@ class Prior:
         return 1.0 / (dimension.max_value - dimension.min_value)
 
     @staticmethod
+    def flat_in_log(dimension, value):
+        norm_const = (np.power(10, dimension.max_value) - np.power(10, dimension.min_value)) / np.log(10)
+        return value / norm_const
+
+    @staticmethod
     def kroupa(dimension, value):
         """
         method to calculate priors probability for kroupa distributions
@@ -454,6 +462,8 @@ class Stroopwafel:
         OUT:
             (float, float): A pair of values which has the rate of stroopwafel rate and the uncertainity in the rate
         """
+        if len(hit_locations) == 0:
+            return (0, 0)
         phi = np.ones(len(hit_locations))
         for index, location in enumerate(hit_locations):
             phi[index] = location.weight
