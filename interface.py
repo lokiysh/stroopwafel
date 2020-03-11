@@ -83,8 +83,8 @@ def configure_code_run(batch):
     system_params_filename = 'system_params_' + str(batch_num)
     dco_filename = 'dco_' + str(batch_num)
     compas_args = [compas_executable, "--grid", grid_filename, "--logfile-BSE-system-parameters", system_params_filename, '--logfile-BSE-double-compact-objects', dco_filename, '--output', output_folder, '--logfile-delimiter', 'COMMA']
-    batch['system_params_filename'] = system_params_filename
-    batch['dco_filename'] = dco_filename
+    batch['system_params_filename'] = output_folder + system_params_filename
+    batch['dco_filename'] = output_folder + dco_filename
     batch['grid_filename'] = grid_filename
     return compas_args
 
