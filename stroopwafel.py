@@ -315,7 +315,7 @@ class Prior:
     def flat_in_log(dimension, value):
         max_value = np.power(10, dimension.max_value)
         min_value = np.power(10, float(dimension.min_value))
-        norm_const = (max_value - min_value) / np.log(10)
+        norm_const = (max_value - min_value) / np.log10(10)
         bound_factor = np.minimum(max_value - value, value - min_value) / (max_value - min_value)
         return value / (norm_const * bound_factor)
 
