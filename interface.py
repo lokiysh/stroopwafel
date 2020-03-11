@@ -4,6 +4,7 @@
 from stroopwafel import *
 import os
 import pandas as pd
+import shutil
 
 #Define the parameters to the constructor of stroopwafel
 NUM_DIMENSIONS = 11 #Number of dimensions you want to samples
@@ -14,8 +15,13 @@ debug = False #If True, will generate the logs given by the external program (li
 compas_executable = os.path.join(os.environ.get('COMPAS_ROOT_DIR'), 'src/COMPAS') # Location of the executable
 
 output_folder = os.getcwd() + '/output/' # Where you want to receieve outputs
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
+if os.path.exists(output_folder):
+    command = input ("The output folder already exists. If you continue, I will remove all its content. Press (Y/N)\n")
+    if (command == 'Y'):
+        shutil.rmtree(output_folder)
+    else:
+        exit()
+os.makedirs(output_folder)
 
 # STEP 1 : Create an instance of the Stroopwafel class
 sw = Stroopwafel(NUM_DIMENSIONS, NUM_BINARIES, NUM_BATCHES, NUM_SAMPLES_PER_BATCH, debug = debug)
