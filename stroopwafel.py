@@ -138,10 +138,11 @@ class Gaussian(NDimensionalDistribution):
     kappa (float) : An independent scaling factor describing how wide the gaussian can be.
     rejection_rate (float) : A number which tells how often samples drawn are rejected because they are outside of the boundary. 
     """
-    def __init__(self, mean, sigma, kappa = 1.0):
+    def __init__(self, mean, sigma, kappa = 1, biased_weight = 1):
         self.mean = mean
         self.sigma = sigma
         self.kappa = kappa
+        self.biased_weight = biased_weight
         (locations, mask) = self.run_sampler(100000)
         self.rejection_rate = 1 - np.sum(mask) / len(mask)
     
@@ -158,6 +159,7 @@ class Gaussian(NDimensionalDistribution):
             if (self.rejection_rate == 1.0):
                 return ([], [])
             num_samples = int(np.ceil(num_samples / (1 - self.rejection_rate)))
+        num_samples = int(num_samples * self.biased_weight)
         locations = []
         mask = np.ones(num_samples, dtype = bool)
         current_samples = multivariate_normal.rvs(mean = self.mean.to_array(), cov = np.power(self.kappa * np.asarray(self.sigma.to_array()), 2), size = num_samples)
@@ -428,7 +430,7 @@ class Stroopwafel:
                 mean[index] = distribution.mean.dimensions[dimension]
                 variance[index][index] = distribution.sigma.dimensions[dimension]
                 index = index + 1
-            q_x[counter, :] = (multivariate_normal.pdf(samples, mean, variance, allow_singular = True)) / (1 - distribution.rejection_rate)
+            q_x[counter, :] = (multivariate_normal.pdf(samples, mean, variance, allow_singular = True) * distribution.biased_weight) / (1 - distribution.rejection_rate)
         q_pdf = np.sum(q_x, axis = 0) / num_distributions
         for counter, location in enumerate(hit_locations):
             Q = (self.fraction_explored * pi_x[counter]) + ((1 - self.fraction_explored) * q_pdf[counter])

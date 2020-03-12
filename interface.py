@@ -113,7 +113,6 @@ def interesting_systems(batch):
             'SN_Kick_Phi_1': 'Kick_Phi_1', 'SN_Kick_Mean_Anomaly_1': 'Kick_Mean_Anomaly_1', 'SN_Kick_Magnitude_Random_Number_2': 'Kick_Velocity_Random_2',\
             'SN_Kick_Theta_2': 'Kick_Theta_2', 'SN_Kick_Phi_2': 'Kick_Phi_2', 'SN_Kick_Mean_Anomaly_2': 'Kick_Mean_Anomaly_2',\
             'Metallicity@ZAMS_1': 'Metallicity_1', 'Metallicity@ZAMS_2': 'Metallicity_2'}, inplace = True)
-
         systems = system_parameters[np.isin(system_parameters['ID'], dns['ID'])]
         systems = pd.merge(systems, dns, on=['ID'])
         locations = []
@@ -125,21 +124,36 @@ def interesting_systems(batch):
                 else:
                     location[dimension] = system[dimension.name]
             properties = dict()
-            for prop in ('ID', 'Metallicity_2', 'Mass_2', 'Eccentricity', 'Merges_Hubble_Time', 'Coalescence_Time'):
+            for prop in ('ID', 'Metallicity_2', 'Mass_2', 'Eccentricity', 'Merges_Hubble_Time', 'Coalescence_Time', 'Mass@DCO_1', 'Mass@DCO_2'):
                 properties[prop] = system[prop]
             locations.append(Location(location, properties))
         return locations
     except IOError as error:
         return []
 
+def selection_effects(sw):
+    """
+    Fills in selection effects for each of the distributions
+    IN:
+        sw (Stroopwafel) : Stroopwafel object
+    """
+    #find means of masses
+    biased_masses = []
+    for distribution in sw.adapted_distributions:
+        biased_masses.append(np.power(distribution.mean.properties['Mass@DCO_1'], 2.2))
+    # update the weights
+    mean = np.mean(biased_masses)
+    for distribution in sw.adapted_distributions:
+        distribution.biased_weight = np.power(distribution.mean.properties['Mass@DCO_1'], 2.2) / mean
 
 #STEP 3: Initialize the stroopwafel object with the user defined functions and create dimensions and initial distribution
 sw.initialize(interesting_systems, configure_code_run, update_properties_method = update_properties)
 dimensions = create_dimensions()
 intial_pdf = InitialDistribution(dimensions)
-
 #STEP 4: Run the 4 phases of stroopwafel
 sw.explore(dimensions, intial_pdf) #Pass in the dimensions list created, and the initial distribution for exploration phase
 sw.adapt(n_dimensional_distribution_type = Gaussian) #Adaptaion phase, tell stroopwafel what kind of distribution you would like to create instrumental distributions
+## Do selection effects
+selection_effects(sw)
 sw.refine() #Stroopwafel will draw samples from the adapted distributions
 sw.postprocess(output_folder + "hits.csv") #Run it to create weights of the hits found. Pass in a filename to store all the hits
