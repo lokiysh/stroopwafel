@@ -138,13 +138,14 @@ def selection_effects(sw):
         sw (Stroopwafel) : Stroopwafel object
     """
     #find means of masses
-    biased_masses = []
-    for distribution in sw.adapted_distributions:
-        biased_masses.append(np.power(distribution.mean.properties['Mass@DCO_1'], 2.2))
-    # update the weights
-    mean = np.mean(biased_masses)
-    for distribution in sw.adapted_distributions:
-        distribution.biased_weight = np.power(distribution.mean.properties['Mass@DCO_1'], 2.2) / mean
+    if sw.adapted_distributions:
+        biased_masses = []
+        for distribution in sw.adapted_distributions:
+            biased_masses.append(np.power(distribution.mean.properties['Mass@DCO_1'], 2.2))
+        # update the weights
+        mean = np.mean(biased_masses)
+        for distribution in sw.adapted_distributions:
+            distribution.biased_weight = np.power(distribution.mean.properties['Mass@DCO_1'], 2.2) / mean
 
 #STEP 3: Initialize the stroopwafel object with the user defined functions and create dimensions and initial distribution
 sw.initialize(interesting_systems, configure_code_run, update_properties_method = update_properties)

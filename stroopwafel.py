@@ -171,8 +171,8 @@ class Gaussian(NDimensionalDistribution):
             locations.append(Location(current_location, {}))
         return (locations, mask)
 
-    @staticmethod
-    def draw_distributions(hit_locations, average_density_one_dim):
+    @classmethod
+    def draw_distributions(self, hit_locations, average_density_one_dim):
         """
         Function that draws gaussians at the hits
         IN:
@@ -185,9 +185,18 @@ class Gaussian(NDimensionalDistribution):
         for hit in hit_locations:
             sigma = dict()
             for variable, val in hit.dimensions.items():
-                sigma[variable] = average_density_one_dim / variable.prior(variable, val)
+                sigma[variable] = (average_density_one_dim * self.__bound_factor(variable, val)) / variable.prior(variable, val)
             gaussians.append(Gaussian(hit, Location(sigma, {})))
         return gaussians
+
+    @staticmethod
+    def __bound_factor(dimension, value):
+        max_value = dimension.max_value
+        min_value = dimension.min_value
+        if dimension.prior == Prior.flat_in_log:
+            max_value = np.power(10, float(dimension.max_value))
+            min_value = np.power(10, float(dimension.min_value))
+        return np.minimum(max_value - value, value - min_value) / (max_value - min_value)
 
 class Sampler:
     """
@@ -310,16 +319,14 @@ class Prior:
         OUT:
             (float) : The prior probability
         """
-        bound_factor = np.minimum(dimension.max_value - value, value - dimension.min_value) / (dimension.max_value - dimension.min_value)
-        return 1.0 / ((dimension.max_value - dimension.min_value) * bound_factor)
+        return 1.0 / (dimension.max_value - dimension.min_value)
 
     @staticmethod
     def flat_in_log(dimension, value):
-        max_value = np.power(10, dimension.max_value)
+        max_value = np.power(10, float(dimension.max_value))
         min_value = np.power(10, float(dimension.min_value))
         norm_const = (max_value - min_value) / np.log10(10)
-        bound_factor = np.minimum(max_value - value, value - min_value) / (max_value - min_value)
-        return value / (norm_const * bound_factor)
+        return value / norm_const
 
     @staticmethod
     def kroupa(dimension, value):
@@ -332,8 +339,7 @@ class Prior:
             (float) : The prior probability
         """
         norm_const = (ALPHA_IMF + 1) / (np.power(dimension.max_value, ALPHA_IMF + 1) - np.power(dimension.min_value, ALPHA_IMF + 1))
-        bound_factor = np.minimum(dimension.max_value - value, value - dimension.min_value) / (dimension.max_value - dimension.min_value)
-        return (norm_const * np.power(value, ALPHA_IMF)) / bound_factor
+        return norm_const * np.power(value, ALPHA_IMF)
 
 class Stroopwafel:
 
