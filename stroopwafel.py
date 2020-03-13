@@ -9,6 +9,7 @@ import numpy as np
 from scipy.stats import multivariate_normal
 from abc import ABC, abstractmethod
 import subprocess
+import os
 
 ALPHA_IMF = -2.3
 
@@ -342,7 +343,7 @@ class Prior:
 
 class Stroopwafel:
 
-    def __init__(self, num_dimensions, num_systems = 100, num_batches = 1, num_samples_per_batch = 100, debug = False):
+    def __init__(self, num_dimensions, num_systems = 100, num_batches = 1, num_samples_per_batch = 100, debug = False, run_on_helios = True):
         self.ALPHA_IMF = -2.3 #Initial Mass Functions alpha value
         self.fraction_explored = 1
         self.num_dimensions = num_dimensions
@@ -350,6 +351,7 @@ class Stroopwafel:
         self.num_batches = num_batches
         self.num_samples_per_batch = num_samples_per_batch
         self.debug = debug
+        self.run_on_helios = run_on_helios
 
     def generate_grid(self, locations, filename = 'grid.txt'):
         """
@@ -503,8 +505,16 @@ class Stroopwafel:
         bar = fill * filledLength + '-' * (length - filledLength)
         print('\r%s' % styling.replace(fill, bar), end = '\r')
         # Print New Line on Complete
-        if iteration >= total:
+        if iteration >= total: 
             print()
+
+    def generate_slurm_file(self, command):
+        filename = os.getcwd() + "/slurm.sh"
+        writer = open(filename, 'w')
+        writer.write("#!/bin/bash\n")
+        writer.write("#SBATCH --output=log.txt\n")
+        writer.write(command + "\n")
+        writer.close()
 
     def run_code(self, command):
         """
@@ -520,7 +530,11 @@ class Stroopwafel:
                 stderr = subprocess.PIPE
             else:
                 stdout = stderr = None
-            process = subprocess.Popen(" ".join(command), shell = True, stdout = stdout, stderr = stderr)
+            command_to_run = " ".join(command)
+            if self.run_on_helios:
+                self.generate_slurm_file(" ".join(command))
+                command_to_run = "sbatch -W -Q slurm.sh"
+            process = subprocess.Popen(command_to_run, shell = True, stdout = stdout, stderr = stderr)
             return process
 
     def wait_for_completion(self, batches):
