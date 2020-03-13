@@ -38,7 +38,7 @@ class Dimension:
     """
     def run_sampler(self, num_samples):
         return self.sampler(num_samples, x = self.min_value, y = self.max_value)
-    
+
     """
     Function that returns which samples are within the bounds of this variables
     IN:
@@ -68,13 +68,13 @@ class Location:
         self.hit_score = hit_score
         self.properties = properties
         self.weight = weight
-    
+
     def __key(self):
         return str(self.dimensions.items())
 
     def __hash__(self):
         return hash(self.__key())
-    
+
     def __eq__(self, other):
         if isinstance(other, Location):
             return self.__key() == other.__key()
@@ -99,7 +99,7 @@ class NDimensionalDistribution:
     """
     def __init__(self, dimensions):
         self.dimensions = dimensions
-    
+
     @abstractmethod
     def run_sampler(self, num_samples):
         #This method must be implemented by all the sub classes
@@ -129,14 +129,14 @@ class InitialDistribution(NDimensionalDistribution):
                 for index, sample in enumerate(current_samples):
                     locations[index].dimensions[dimension] = sample
         return (locations, mask)
-    
+
 class Gaussian(NDimensionalDistribution):
     """
     This class inherits from NDimensionalDistribution. It will be used during the refinement phase to draw adapted distributions.
     mean (Location) : The mean location of the gaussian. It is of Location type and therefore stores all the dimension
     sigma (Location) : The sigma of the gaussian. Also of Location class type
     kappa (float) : An independent scaling factor describing how wide the gaussian can be.
-    rejection_rate (float) : A number which tells how often samples drawn are rejected because they are outside of the boundary. 
+    rejection_rate (float) : A number which tells how often samples drawn are rejected because they are outside of the boundary.
     """
     def __init__(self, mean, sigma, kappa = 1, biased_weight = 1):
         self.mean = mean
@@ -145,7 +145,7 @@ class Gaussian(NDimensionalDistribution):
         self.biased_weight = biased_weight
         (locations, mask) = self.run_sampler(100000)
         self.rejection_rate = 1 - np.sum(mask) / len(mask)
-    
+
     """
         This function tells the class how to draw the samples for this class
         IN:
@@ -217,7 +217,7 @@ class Sampler:
         x = kwargs['x']
         y = kwargs['y']
         return np.random.uniform(x, y, num_samples)
-    
+
     @staticmethod
     def flat_in_log(num_samples, **kwargs):
         """
@@ -233,7 +233,7 @@ class Sampler:
         x = kwargs['x']
         y = kwargs['y']
         return np.power(10, np.random.uniform(x, y, num_samples))
-    
+
     @staticmethod
     def flat(num_samples, **kwargs):
         """
@@ -246,7 +246,7 @@ class Sampler:
         """
         x = kwargs['x']
         return np.ones(num_samples) * x
-    
+
     @staticmethod
     def kroupa(num_samples = 1, **kwargs):
         """
@@ -281,7 +281,7 @@ class SigmaCalculationMethod:
         """
         cov = (dimension.max_value - dimension.min_value) * average_density_one_dim
         return np.power(kappa, 2) * np.power(cov, 2)
-    
+
     @staticmethod
     def kroupa(dimension, average_density_one_dim, mean, kappa = 1.0):
         # Below looks ugly, but probably the only way to do it
@@ -325,8 +325,7 @@ class Prior:
     def flat_in_log(dimension, value):
         max_value = np.power(10, float(dimension.max_value))
         min_value = np.power(10, float(dimension.min_value))
-        norm_const = (max_value - min_value) / np.log10(10)
-        return value / norm_const
+        return 1 / (value * (np.log(max_value) - np.log(min_value)))
 
     @staticmethod
     def kroupa(dimension, value):
@@ -504,7 +503,7 @@ class Stroopwafel:
         bar = fill * filledLength + '-' * (length - filledLength)
         print('\r%s' % styling.replace(fill, bar), end = '\r')
         # Print New Line on Complete
-        if iteration >= total: 
+        if iteration >= total:
             print()
 
     def run_code(self, command):
@@ -554,7 +553,7 @@ class Stroopwafel:
         self.finished = 0
         self.hits = []
         self.printProgressBar(0, self.num_systems, prefix = 'progress', suffix = 'complete', length = 20)
-    
+
     def explore(self, dimensions, intial_pdf):
         """
         This function is the exploration phase of the stroopwafel
@@ -590,7 +589,7 @@ class Stroopwafel:
         if self.num_to_be_refined > 0:
             average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / self.num_dimensions)
             self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(self.hits, average_density_one_dim)
-    
+
     def refine(self):
         """
         Refinement phase of stroopwafel
