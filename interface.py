@@ -5,7 +5,9 @@ from stroopwafel import *
 import os
 import pandas as pd
 import shutil
+import time
 
+start_time = time.time()
 #Define the parameters to the constructor of stroopwafel
 NUM_DIMENSIONS = 11 #Number of dimensions you want to samples
 NUM_BINARIES = 1000 #total number of systems
@@ -83,9 +85,11 @@ def configure_code_run(batch):
     grid_filename = output_folder + 'grid_' + str(batch_num) + '.txt'
     system_params_filename = 'system_params_' + str(batch_num)
     dco_filename = 'dco_' + str(batch_num)
-    compas_args = [compas_executable, "--grid", grid_filename, "--logfile-BSE-system-parameters", system_params_filename, '--logfile-BSE-double-compact-objects', dco_filename, '--output', output_folder, '--logfile-delimiter', 'COMMA']
+    supernovae_filename = 'supernovae_' + str(batch_num)
+    compas_args = [compas_executable, "--grid", grid_filename, "--logfile-BSE-system-parameters", system_params_filename, '--logfile-BSE-double-compact-objects', dco_filename, '--logfile-BSE-supernovae', supernovae_filename, '--output', output_folder, '--logfile-delimiter', 'COMMA']
     batch['system_params_filename'] = output_folder + system_params_filename
     batch['dco_filename'] = output_folder + dco_filename
+    batch['supernovae_filename'] = output_folder + supernovae_filename
     batch['grid_filename'] = grid_filename
     return compas_args
 
@@ -105,7 +109,11 @@ def interesting_systems(batch):
         double_compact_objects.set_index('ID')
         double_compact_objects.rename(columns = {'Mass_1': 'Mass@DCO_1', 'Mass_2': 'Mass@DCO_2'}, inplace = True)
         dns = double_compact_objects[np.logical_and(double_compact_objects['Stellar_Type_1'] == 13, double_compact_objects['Stellar_Type_2'] == 13)]
-        
+
+        supernovae = pd.read_csv(batch['supernovae_filename'] + '.csv', skiprows = 2)
+        supernovae.rename(columns = lambda x: x.strip(), inplace=True)
+        supernovae.set_index('ID')
+        supernovae = supernovae[np.isin(supernovae['ID'], dns['ID'])]
         system_parameters = pd.read_csv(batch['system_params_filename'] + '.csv', skiprows = 2)
         system_parameters.rename(columns = lambda x: x.strip(), inplace=True)
         system_parameters.set_index('ID')
@@ -127,6 +135,13 @@ def interesting_systems(batch):
             properties = dict()
             for prop in ('ID', 'Metallicity_2', 'Mass_2', 'Eccentricity', 'Merges_Hubble_Time', 'Coalescence_Time', 'Mass@DCO_1', 'Mass@DCO_2'):
                 properties[prop] = system[prop]
+            # Get supernovae kicks
+            primary_SN = supernovae.loc[(supernovae['ID'] == system['ID']) & (supernovae['Supernova_State'] == 1)]
+            secondary_SN = supernovae.loc[(supernovae['ID'] == system['ID']) & (supernovae['Supernova_State'] == 2)]
+            if not primary_SN.empty:
+                properties['Kick_Velocity_1'] = primary_SN.iloc[0]['Applied_Kick_Velocity_SN']
+            if not secondary_SN.empty:
+                properties['Kick_Velocity_2'] = secondary_SN.iloc[0]['Applied_Kick_Velocity_SN']
             locations.append(Location(location, properties))
         return locations
     except IOError as error:
@@ -139,7 +154,7 @@ def selection_effects(sw):
         sw (Stroopwafel) : Stroopwafel object
     """
     #find means of masses
-    if sw.adapted_distributions:
+    if hasattr(sw, 'adapted_distributions'):
         biased_masses = []
         for distribution in sw.adapted_distributions:
             biased_masses.append(np.power(distribution.mean.properties['Mass@DCO_1'], 2.2))
@@ -156,6 +171,9 @@ intial_pdf = InitialDistribution(dimensions)
 sw.explore(dimensions, intial_pdf) #Pass in the dimensions list created, and the initial distribution for exploration phase
 sw.adapt(n_dimensional_distribution_type = Gaussian) #Adaptaion phase, tell stroopwafel what kind of distribution you would like to create instrumental distributions
 ## Do selection effects
-selection_effects(sw)
+#selection_effects(sw)
 sw.refine() #Stroopwafel will draw samples from the adapted distributions
 sw.postprocess(output_folder + "hits.csv") #Run it to create weights of the hits found. Pass in a filename to store all the hits
+
+end_time = time.time()
+print ("Total running time = %d seconds" %(end_time - start_time))

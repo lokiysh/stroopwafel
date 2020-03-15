@@ -144,7 +144,7 @@ class Gaussian(NDimensionalDistribution):
         self.sigma = sigma
         self.kappa = kappa
         self.biased_weight = biased_weight
-        (locations, mask) = self.run_sampler(100000)
+        (locations, mask) = self.run_sampler(10000)
         self.rejection_rate = 1 - np.sum(mask) / len(mask)
 
     """
