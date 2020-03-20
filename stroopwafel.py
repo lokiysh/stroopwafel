@@ -343,7 +343,7 @@ class Prior:
 
 class Stroopwafel:
 
-    def __init__(self, num_dimensions, num_systems = 100, num_batches = 1, num_samples_per_batch = 100, debug = False, run_on_helios = True):
+    def __init__(self, num_dimensions, num_systems = 100, num_batches = 1, num_samples_per_batch = 100, debug = False, run_on_helios = True, mc_only = False):
         self.ALPHA_IMF = -2.3 #Initial Mass Functions alpha value
         self.fraction_explored = 1
         self.num_dimensions = num_dimensions
@@ -352,6 +352,7 @@ class Stroopwafel:
         self.num_samples_per_batch = num_samples_per_batch
         self.debug = debug
         self.run_on_helios = run_on_helios
+        self.mc_only = mc_only
 
     def generate_grid(self, locations, filename = 'grid.txt'):
         """
@@ -396,6 +397,8 @@ class Stroopwafel:
         OUT:
             bool : boolean value telling If we should continue exploring or not
         """
+        if self.mc_only:
+            return True
         return self.num_explored / self.num_systems < self.fraction_explored
 
     def mark_location_as_hits(self, points, hit_locations):
