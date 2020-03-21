@@ -553,6 +553,8 @@ class Stroopwafel:
                 self.hits.extend(self.interesting_systems_method(batch))
             self.finished += self.num_samples_per_batch
             self.printProgressBar(self.finished, self.num_systems, prefix = 'progress', suffix = 'complete', length = 20)
+            if self.finished >= self.num_systems:
+                break
 
     def initialize(self, interesting_systems_method, configure_code_run, update_properties_method = None):
         """
