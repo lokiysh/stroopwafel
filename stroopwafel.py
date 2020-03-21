@@ -398,7 +398,7 @@ class Stroopwafel:
             bool : boolean value telling If we should continue exploring or not
         """
         if self.mc_only:
-            return True
+            return self.num_explored < self.num_systems
         return self.num_explored / self.num_systems < self.fraction_explored
 
     def mark_location_as_hits(self, points, hit_locations):

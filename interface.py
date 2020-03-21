@@ -134,15 +134,9 @@ def interesting_systems(batch):
                 else:
                     location[dimension] = system[dimension.name]
             properties = dict()
-            for prop in ('ID', 'Metallicity_2', 'Mass_2', 'Eccentricity', 'Merges_Hubble_Time', 'Coalescence_Time', 'Mass@DCO_1', 'Mass@DCO_2'):
+            properties['batch'] = batch['number']
+            for prop in ('ID', 'Metallicity_2', 'Mass_2', 'Eccentricity'):
                 properties[prop] = system[prop]
-            # Get supernovae kicks
-            primary_SN = supernovae.loc[(supernovae['ID'] == system['ID']) & (supernovae['Supernova_State'] == 1)]
-            secondary_SN = supernovae.loc[(supernovae['ID'] == system['ID']) & (supernovae['Supernova_State'] == 2)]
-            if not primary_SN.empty:
-                properties['Kick_Velocity_1'] = primary_SN.iloc[0]['Applied_Kick_Velocity_SN']
-            if not secondary_SN.empty:
-                properties['Kick_Velocity_2'] = secondary_SN.iloc[0]['Applied_Kick_Velocity_SN']
             locations.append(Location(location, properties))
         return locations
     except IOError as error:
