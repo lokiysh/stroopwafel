@@ -508,7 +508,7 @@ class Stroopwafel:
         bar = fill * filledLength + '-' * (length - filledLength)
         print('\r%s' % styling.replace(fill, bar), end = '\r')
         # Print New Line on Complete
-        if iteration >= total: 
+        if iteration >= total:
             print()
 
     def generate_slurm_file(self, command):
@@ -533,9 +533,9 @@ class Stroopwafel:
                 stderr = subprocess.PIPE
             else:
                 stdout = stderr = None
-            command_to_run = " ".join(command)
+            command_to_run = " ".join(str(v) for v in command))
             if self.run_on_helios:
-                self.generate_slurm_file(" ".join(command))
+                self.generate_slurm_file(" ".join(str(v) for v in command))
                 command_to_run = "sbatch -W -Q slurm.sh"
             process = subprocess.Popen(command_to_run, shell = True, stdout = stdout, stderr = stderr)
             return process
