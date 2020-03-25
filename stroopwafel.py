@@ -506,7 +506,7 @@ class Stroopwafel:
                 stderr = subprocess.PIPE
             else:
                 stdout = stderr = None
-            command_to_run = " ".join(str(v) for v in command))
+            command_to_run = " ".join(str(v) for v in command)
             if self.run_on_helios:
                 self.generate_slurm_file(" ".join(str(v) for v in command))
                 command_to_run = "sbatch -W -Q slurm.sh"
