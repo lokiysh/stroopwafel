@@ -276,51 +276,6 @@ class Sampler:
         y = np.sin(kwargs['y'])
         return np.arcsin(np.random.uniform(x, y, num_samples))
 
-"""
-## This class will be deprecated soon, please do not use it
-"""
-class SigmaCalculationMethod:
-    """
-    Defines various ways to calculate sigmas for gaussians
-    """
-    @staticmethod
-    def usual(dimension, average_density_one_dim, kappa = 1.0):
-        """
-        Usual method for calculating the sigma
-        IN:
-            dimension (Dimension) : The dimension to find the sigma for
-            average_density_one_dim (float) : The expected number of average density of hits in this dimension
-            kappa (float) : free parameter for the width of the gaussian
-        OUT:
-            float : The calculated value of sigma
-        """
-        cov = (dimension.max_value - dimension.min_value) * average_density_one_dim
-        return np.power(kappa, 2) * np.power(cov, 2)
-
-    @staticmethod
-    def kroupa(dimension, average_density_one_dim, mean, kappa = 1.0):
-        # Below looks ugly, but probably the only way to do it
-        """
-        kroupa method for calculating the sigma
-        IN:
-            dimension (Dimension) : The dimension to find the sigma for
-            average_density_one_dim (float) : The expected number of average density of hits in this dimension
-            kappa (float) : free parameter for the width of the gaussian
-            mean (float) : the mean for the gaussian
-        OUT:
-            float : The calculated value of sigma
-        """
-        K1 = (ALPHA_IMF + 1) / (np.power(dimension.max_value, ALPHA_IMF + 1) - np.power(dimension.min_value, ALPHA_IMF + 1))
-        inverse = (np.power(K1 / mean, 1 / -ALPHA_IMF) - np.power(K1 / dimension.min_value, 1 / -ALPHA_IMF)) / (np.power(K1 / dimension.max_value, 1 / -ALPHA_IMF) - np.power(K1 / dimension.min_value, 1 / -ALPHA_IMF))
-        #Find average distance on the right side
-        right = inverse + average_density_one_dim
-        right_average_distance = K1 / np.power(right * (np.power(K1 / dimension.max_value, 1 / -ALPHA_IMF) - np.power(K1 / dimension.min_value, 1 / -ALPHA_IMF)) + np.power(K1 / dimension.min_value, 1 / -ALPHA_IMF), -ALPHA_IMF)
-        #Do it for the left side
-        left = inverse - average_density_one_dim
-        left_average_distance = K1 / np.power(left * (np.power(K1 / dimension.max_value, 1 / -ALPHA_IMF) - np.power(K1 / dimension.min_value, 1 / -ALPHA_IMF)) + np.power(K1 / dimension.min_value, 1 / -ALPHA_IMF), -ALPHA_IMF)
-        cov = np.maximum(np.abs(right_average_distance - mean), np.abs(left_average_distance - mean))
-        return np.power(kappa, 2) * np.power(cov, 2)
-
 class Prior:
     """
     This class defines the birth priors of the dimensions
@@ -363,7 +318,6 @@ class Prior:
 class Stroopwafel:
 
     def __init__(self, num_dimensions, num_systems = 100, num_batches = 1, num_samples_per_batch = 100, debug = False, run_on_helios = True, mc_only = False):
-        self.ALPHA_IMF = -2.3 #Initial Mass Functions alpha value
         self.fraction_explored = 1
         self.num_dimensions = num_dimensions
         self.num_systems = num_systems
