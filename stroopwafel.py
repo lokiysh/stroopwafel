@@ -262,6 +262,20 @@ class Sampler:
         x = kwargs['x']
         y = kwargs['y']
         return np.power(np.random.uniform(0, 1, num_samples) * (np.power(y, 1 + ALPHA_IMF) - np.power(x, 1 + ALPHA_IMF)) + np.power(x, 1 + ALPHA_IMF), 1 / (1 + ALPHA_IMF))
+
+    @staticmethod
+    def uniform_in_sine(num_samples, **kwargs):
+        """
+        static method to run a uniform sine sampling  useful for example in solid angles sampling
+        IN:
+            num_samples (int) : number of samples to be returned
+        OUT:
+            a list of samples in the range [x, y) considering uniformly in sine sampling distribution
+        """
+        x = np.sin(kwargs['x'])
+        y = np.sin(kwargs['y'])
+        return np.arcsin(np.random.uniform(x, y, num_samples))
+
 """
 ## This class will be deprecated soon, please do not use it
 """
@@ -340,6 +354,11 @@ class Prior:
         """
         norm_const = (ALPHA_IMF + 1) / (np.power(dimension.max_value, ALPHA_IMF + 1) - np.power(dimension.min_value, ALPHA_IMF + 1))
         return norm_const * np.power(value, ALPHA_IMF)
+
+    @staticmethod
+    def uniform_in_sine(dimension, value):
+        norm_const = 2
+        return np.abs(np.cos(value)) / norm_const
 
 class Stroopwafel:
 
