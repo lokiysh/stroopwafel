@@ -48,7 +48,7 @@ class Dimension:
         list(bool) : which of the given samples are within the bounds
     """
     def is_sample_within_bounds(self, samples):
-        if self.sampler == Sampler.uniform or self.sampler == Sampler.kroupa:
+        if self.sampler == Sampler.uniform or self.sampler == Sampler.kroupa or self.sampler == Sampler.uniform_in_sine:
             return (samples >= self.min_value) & (samples <= self.max_value)
         elif self.sampler == Sampler.flat_in_log:
             return (samples >= np.power(10, float(self.min_value))) & (samples <= np.power(10, float(self.max_value)))
