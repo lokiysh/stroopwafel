@@ -151,11 +151,11 @@ def selection_effects(sw):
     if hasattr(sw, 'adapted_distributions'):
         biased_masses = []
         for distribution in sw.adapted_distributions:
-            biased_masses.append(np.power(distribution.mean.properties['Mass@DCO_1'], 2.2))
+            biased_masses.append(np.power(max([distribution.mean.properties['Mass@DCO_1'], distribution.mean.properties['Mass@DCO_2']]), 2.2))
         # update the weights
         mean = np.mean(biased_masses)
         for distribution in sw.adapted_distributions:
-            distribution.biased_weight = np.power(distribution.mean.properties['Mass@DCO_1'], 2.2) / mean
+            distribution.biased_weight = np.power(max([distribution.mean.properties['Mass@DCO_1'], distribution.mean.properties['Mass@DCO_2']]), 2.2) / mean
 
 #STEP 3: Initialize the stroopwafel object with the user defined functions and create dimensions and initial distribution
 sw.initialize(interesting_systems, configure_code_run, update_properties_method = update_properties)
