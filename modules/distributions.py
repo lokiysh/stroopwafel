@@ -35,14 +35,15 @@ class InitialDistribution(NDimensionalDistribution):
         OUT:
             (list(Location), list(bool)) : A pair of lists (both of size num_samples), the first describing the samples drawn, and the second telling which of the samples are within the bounds of the respective variables
         """
-        locations = [Location({}, {}) for i in range(num_samples)]
         mask = np.ones(num_samples, dtype = bool)
-        for dimension in self.dimensions:
-            if dimension.sampler != None:
-                current_samples = dimension.run_sampler(num_samples)
-                mask &= dimension.is_sample_within_bounds(current_samples)
-                for index, sample in enumerate(current_samples):
-                    locations[index].dimensions[dimension] = sample
+        headers = sorted(self.dimensions, key = lambda d: d.name)
+        samples = []
+        for dimension in headers:
+            current_samples = dimension.run_sampler(num_samples)
+            mask &= dimension.is_sample_within_bounds(current_samples)
+            samples.append(current_samples)
+        samples = list(map(list, zip(*samples)))
+        locations = [Location(dict(zip(headers, row)), {}) for row in samples]
         return (locations, mask)
 
 class Gaussian(NDimensionalDistribution):
@@ -73,15 +74,12 @@ class Gaussian(NDimensionalDistribution):
                 return ([], [])
             num_samples = int(np.ceil(num_samples / (1 - self.rejection_rate)))
         num_samples = int(num_samples * self.biased_weight)
-        locations = []
         mask = np.ones(num_samples, dtype = bool)
         current_samples = multivariate_normal.rvs(mean = self.mean.to_array(), cov = np.power(self.kappa * np.asarray(self.sigma.to_array()), 2), size = num_samples)
-        for i, sample in enumerate(current_samples):
-            current_location = dict()
-            for index, dimension in enumerate(sorted(self.mean.dimensions.keys(), key = lambda d: d.name)):
-                current_location[dimension] = sample[index]
-                mask[i] &= dimension.is_sample_within_bounds(sample[index])
-            locations.append(Location(current_location, {}))
+        headers = sorted(self.mean.dimensions.keys(), key = lambda d: d.name)
+        for index, dimension in enumerate(headers):
+            mask &= dimension.is_sample_within_bounds(current_samples[:, index])
+        locations = [Location(dict(zip(headers, row)), {}) for row in current_samples]
         return (locations, mask)
 
     @classmethod
