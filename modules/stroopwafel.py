@@ -148,7 +148,7 @@ class Stroopwafel:
                     self.update_properties_method(locations)
                 command = self.configure_code_run(current_batch)
                 generate_grid(locations, current_batch['grid_filename'])
-                current_batch['process'] = run_code(command, self.batch_num, self.output_folder, self.debug, self.run_on_helios)
+                current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)
                 batches.append(current_batch)
                 self.batch_num = self.batch_num + 1
             self.wait_for_completion(batches)
@@ -189,7 +189,7 @@ class Stroopwafel:
                     self.update_properties_method(locations_ref)
                 command = self.configure_code_run(current_batch)
                 generate_grid(locations_ref, current_batch['grid_filename'])
-                current_batch['process'] = run_code(command, self.batch_num, self.output_folder, self.debug, self.run_on_helios)
+                current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)
                 batches.append(current_batch)
                 self.batch_num = self.batch_num + 1
             self.wait_for_completion(batches)
