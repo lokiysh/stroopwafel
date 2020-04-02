@@ -84,14 +84,10 @@ def configure_code_run(batch):
     """
     batch_num = batch['number']
     grid_filename = output_folder + '/grid_' + str(batch_num) + '.txt'
-    system_params_filename = 'system_params_' + str(batch_num)
-    dco_filename = 'dco_' + str(batch_num)
-    supernovae_filename = 'supernovae_' + str(batch_num)
-    compas_args = [compas_executable, "--grid", grid_filename, "--logfile-BSE-system-parameters", system_params_filename, '--logfile-BSE-double-compact-objects', dco_filename, '--logfile-BSE-supernovae', supernovae_filename, '--output', output_folder, '--logfile-delimiter', 'COMMA']
-    batch['system_params_filename'] = output_folder + "/" + system_params_filename
-    batch['dco_filename'] = output_folder + "/" + dco_filename
-    batch['supernovae_filename'] = output_folder + "/" + supernovae_filename
+    output_container = 'batch_' + str(batch_num)
+    compas_args = [compas_executable, "--grid", grid_filename, '--outputPath', output_folder, '--logfile-delimiter', 'COMMA', '--output-container', output_container]
     batch['grid_filename'] = grid_filename
+    batch['output_container'] = output_container
     return compas_args
 
 def interesting_systems(batch):
@@ -105,16 +101,13 @@ def interesting_systems(batch):
         Location object for each of them with the dimensions and the properties.
     """
     try:
-        double_compact_objects = pd.read_csv(batch['dco_filename'] + '.csv', skiprows = 2)
+        folder = os.path.join(output_folder, batch['output_container'])
+        double_compact_objects = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
         double_compact_objects.rename(columns = lambda x: x.strip(), inplace=True)
         double_compact_objects.set_index('ID')
         double_compact_objects.rename(columns = {'Mass_1': 'Mass@DCO_1', 'Mass_2': 'Mass@DCO_2'}, inplace = True)
         dns = double_compact_objects[np.logical_and(double_compact_objects['Stellar_Type_1'] == 13, double_compact_objects['Stellar_Type_2'] == 13)]
-        supernovae = pd.read_csv(batch['supernovae_filename'] + '.csv', skiprows = 2)
-        supernovae.rename(columns = lambda x: x.strip(), inplace=True)
-        supernovae.set_index('ID')
-        supernovae = supernovae[np.isin(supernovae['ID'], dns['ID'])]
-        system_parameters = pd.read_csv(batch['system_params_filename'] + '.csv', skiprows = 2)
+        system_parameters = pd.read_csv(folder + '/BSE_System_Parameters.csv', skiprows = 2)
         system_parameters.rename(columns = lambda x: x.strip(), inplace=True)
         system_parameters.set_index('ID')
         system_parameters.rename(columns = {'Mass@ZAMS_1': 'Mass_1', 'Mass@ZAMS_2': 'Mass_2', 'Separation@ZAMS' : 'Separation',\
