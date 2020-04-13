@@ -116,7 +116,7 @@ def interesting_systems(batch):
             'SN_Kick_Theta_2': 'Kick_Theta_2', 'SN_Kick_Phi_2': 'Kick_Phi_2', 'SN_Kick_Mean_Anomaly_2': 'Kick_Mean_Anomaly_2',\
             'Metallicity@ZAMS_1': 'Metallicity_1', 'Metallicity@ZAMS_2': 'Metallicity_2'}, inplace = True)
         systems = system_parameters[np.isin(system_parameters['ID'], dns['ID'])]
-        systems = pd.merge(systems, dns, on=['ID'])
+        systems = pd.merge(systems, dns, on=['ID', 'SEED'])
         locations = []
         for index, system in systems.iterrows():
             location = dict()
@@ -127,7 +127,7 @@ def interesting_systems(batch):
                     location[dimension] = system[dimension.name]
             properties = dict()
             properties['batch'] = batch['number']
-            for prop in ('ID', 'Metallicity_2', 'Mass_2', 'Eccentricity'):
+            for prop in ('SEED', 'Metallicity_2', 'Mass_2', 'Eccentricity'):
                 properties[prop] = system[prop]
             locations.append(classes.Location(location, properties))
         return locations
