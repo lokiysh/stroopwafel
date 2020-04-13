@@ -28,9 +28,10 @@ def flat_in_log(num_samples, **kwargs):
     OUT:
         a list of samples in the range [x, y) considering power law distribution
     """
-    x = np.log10(kwargs['x'])
-    y = np.log10(kwargs['y'])
-    return np.power(10, np.random.uniform(x, y, num_samples))
+    #This assumes that the values x and y are already the log values
+    x = kwargs['x']
+    y = kwargs['y']
+    return np.random.uniform(x, y, num_samples)
 
 def flat(num_samples, **kwargs):
     """

@@ -1,4 +1,6 @@
 import sampler as sp
+import numpy as np
+
 class Dimension:
     """
     A class that represents one of the dimensions that we will stroopwafelize
@@ -16,6 +18,9 @@ class Dimension:
         self.sampler = sampler
         self.prior = prior
         self.should_print = should_print
+        if self.sampler.__name__ == sp.flat_in_log.__name__:
+            self.min_value = np.log10(min_value)
+            self.max_value = np.log10(max_value)
     """
     Function that samples the variable based on the given sampler class
     IN:
@@ -75,3 +80,14 @@ class Location:
         for dimension in self.dimensions.keys():
             string += dimension.name + " : " + str(self.dimensions[dimension]) + ","
         return string
+
+    def revert_variables_to_original_scales(self):
+        for dimension, value in self.dimensions.items():
+            if dimension.sampler.__name__ == sp.flat_in_log.__name__:
+                self.dimensions[dimension] = np.power(10, value)
+
+    def transform_variables_to_new_scales(self):
+        for dimension, value in self.dimensions.items():
+            if dimension.sampler.__name__ == sp.flat_in_log.__name__:
+                self.dimensions[dimension] = np.log10(value)
+

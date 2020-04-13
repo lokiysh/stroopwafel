@@ -15,6 +15,7 @@ def generate_grid(locations, filename = 'grid.txt'):
     grid = []
     for location in locations:
         current_location = []
+        location.revert_variables_to_original_scales()
         for key, value in location.dimensions.items():
             if key.should_print:
                 if len(grid) == 0:
@@ -62,6 +63,7 @@ def print_hits(hit_locations, filename):
     grid = []
     for hit in hit_locations:
         current_hit = []
+        hit.revert_variables_to_original_scales()
         for key, value in hit.properties.items():
             if len(grid) == 0:
                 header.append(key)

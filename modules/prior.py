@@ -15,7 +15,9 @@ def uniform(dimension, value):
     return 1.0 / (dimension.max_value - dimension.min_value)
 
 def flat_in_log(dimension, value):
-    return 1 / (value * (np.log(dimension.max_value) - np.log(dimension.min_value)))
+    #return 1 / (value * (np.log(dimension.max_value) - np.log(dimension.min_value)))
+    #This will assume that all values are already the log values
+    return 1.0 / (dimension.max_value - dimension.min_value)
 
 def kroupa(dimension, value):
     """

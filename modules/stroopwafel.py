@@ -108,7 +108,9 @@ class Stroopwafel:
             if batch['process']:
                 batch['process'].wait()
             if self.interesting_systems_method != None:
-                self.hits.extend(self.interesting_systems_method(batch))
+                locations = self.interesting_systems_method(batch)
+                [location.transform_variables_to_new_scales() for location in locations]
+                self.hits.extend(locations)
             self.finished += self.num_samples_per_batch
             printProgressBar(self.finished, self.num_systems, prefix = 'progress', suffix = 'complete', length = 20)
             if self.finished >= self.num_systems:
