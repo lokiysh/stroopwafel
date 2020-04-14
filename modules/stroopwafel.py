@@ -146,6 +146,7 @@ class Stroopwafel:
                 current_batch = dict()
                 current_batch['number'] = self.batch_num
                 (locations, mask) = intial_pdf.run_sampler(self.num_samples_per_batch)
+                [location.revert_variables_to_original_scales() for location in locations]
                 if self.update_properties_method != None:
                     self.update_properties_method(locations)
                 command = self.configure_code_run(current_batch)
