@@ -188,6 +188,7 @@ class Stroopwafel:
                     locations_ref.extend(np.asarray(locations)[mask])
                 np.random.shuffle(locations_ref)
                 locations_ref = locations_ref[0 : self.num_samples_per_batch]
+                [location.revert_variables_to_original_scales() for location in locations_ref]
                 if self.update_properties_method != None:
                     self.update_properties_method(locations_ref)
                 command = self.configure_code_run(current_batch)
