@@ -4,9 +4,7 @@ from scipy.stats import multivariate_normal
 
 class Stroopwafel:
 
-    def __init__(self, num_dimensions, num_systems = 100, num_batches = 1, num_samples_per_batch = 100, output_folder = os.getcwd(), debug = False, run_on_helios = True, mc_only = False):
-        self.fraction_explored = 1
-        self.num_dimensions = num_dimensions
+    def __init__(self, num_systems = 100, num_batches = 1, num_samples_per_batch = 100, output_folder = os.getcwd(), debug = False, run_on_helios = True, mc_only = False):
         self.num_systems = num_systems
         self.num_batches = num_batches
         self.num_samples_per_batch = num_samples_per_batch
@@ -116,7 +114,7 @@ class Stroopwafel:
             if self.finished >= self.num_systems:
                 break
 
-    def initialize(self, interesting_systems_method, configure_code_run, update_properties_method = None):
+    def initialize(self, interesting_systems_method, configure_code_run, num_dimensions, update_properties_method = None):
         """
         This function is the one which is run only once in the stroopwafel class. It initializes the associated variables and the function calls that user will specify
         IN:
@@ -127,10 +125,12 @@ class Stroopwafel:
         self.interesting_systems_method = interesting_systems_method
         self.update_properties_method = update_properties_method
         self.configure_code_run = configure_code_run
+        self.num_dimensions = num_dimensions
         self.batch_num = 0
         self.num_explored = 0
         self.finished = 0
         self.hits = []
+        self.fraction_explored = 1
         printProgressBar(0, self.num_systems, prefix = 'progress', suffix = 'complete', length = 20)
 
     def explore(self, dimensions, intial_pdf):
