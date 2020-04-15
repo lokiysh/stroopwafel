@@ -21,6 +21,9 @@ class Dimension:
         if self.sampler.__name__ == sp.flat_in_log.__name__:
             self.min_value = np.log10(min_value)
             self.max_value = np.log10(max_value)
+        elif self.sampler.__name__ == sp.uniform_in_sine.__name__:
+            self.min_value = np.sin(min_value)
+            self.max_value = np.sin(max_value)
     """
     Function that samples the variable based on the given sampler class
     IN:
@@ -85,9 +88,13 @@ class Location:
         for dimension, value in self.dimensions.items():
             if dimension.sampler.__name__ == sp.flat_in_log.__name__:
                 self.dimensions[dimension] = np.power(10, value)
+            elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
+                self.dimensions[dimension] = np.arcsin(value)
 
     def transform_variables_to_new_scales(self):
         for dimension, value in self.dimensions.items():
             if dimension.sampler.__name__ == sp.flat_in_log.__name__:
                 self.dimensions[dimension] = np.log10(value)
+            elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
+                self.dimensions[dimension] = np.sin(value)
 

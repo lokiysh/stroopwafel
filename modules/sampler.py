@@ -67,6 +67,6 @@ def uniform_in_sine(num_samples, **kwargs):
     OUT:
         a list of samples in the range [x, y) considering uniformly in sine sampling distribution
     """
-    x = np.sin(kwargs['x'])
-    y = np.sin(kwargs['y'])
-    return np.arcsin(np.random.uniform(x, y, num_samples))
+    x = kwargs['x']
+    y = kwargs['y']
+    return np.random.uniform(x, y, num_samples)
