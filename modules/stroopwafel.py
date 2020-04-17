@@ -78,6 +78,7 @@ class Stroopwafel:
         for counter, location in enumerate(hit_locations):
             Q = (self.fraction_explored * pi_x[counter]) + ((1 - self.fraction_explored) * q_pdf[counter])
             location.weight = pi_x[counter] / Q
+            location.properties['exact_weight'] = pi_x[counter] / q_pdf[counter]
 
     def determine_rate(self, hit_locations):
         """
@@ -209,6 +210,8 @@ class Stroopwafel:
             filename(String): It tells what is the filename to store all the hits and its properties
         """
         try:
+            for hit in self.hits:
+                hit.properties['exact_weight'] = 1
             self.calculate_weights_of_hits(self.hits[len(self.adapted_distributions):], self.adapted_distributions)
         except AttributeError:
             pass
