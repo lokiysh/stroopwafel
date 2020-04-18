@@ -97,7 +97,7 @@ class Stroopwafel:
         uncertainity = np.round(np.std(phi, ddof = 1) / np.sqrt(self.num_systems), 6)
         return (stroopwafel_rate, uncertainity)
 
-    def wait_for_completion(self, batches):
+    def wait_for_completion(self, batches, is_exploration_phase):
         """
         Function that waits for the completion of the commands which were running in batches
         IN:
@@ -112,6 +112,11 @@ class Stroopwafel:
                 self.hits.extend(locations)
             self.finished += self.num_samples_per_batch
             printProgressBar(self.finished, self.num_systems, prefix = 'progress', suffix = 'complete', length = 20)
+            if is_exploration_phase:
+                self.num_explored += self.num_samples_per_batch
+                self.update_fraction_explored()
+                if not self.should_continue_exploring():
+                    break
             if self.finished >= self.num_systems:
                 break
 
@@ -155,9 +160,7 @@ class Stroopwafel:
                 current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)
                 batches.append(current_batch)
                 self.batch_num = self.batch_num + 1
-            self.wait_for_completion(batches)
-            self.num_explored += self.num_batches * self.num_samples_per_batch
-            self.update_fraction_explored()
+            self.wait_for_completion(batches, True)
         print ("\nExploratory phase finished, found %d hits out of %d explored. Rate = %.6f (fexpl = %.4f)" %(len(self.hits), self.num_explored, len(self.hits) / self.num_explored, self.fraction_explored))
 
     def adapt(self, n_dimensional_distribution_type):
@@ -197,7 +200,7 @@ class Stroopwafel:
                 current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)
                 batches.append(current_batch)
                 self.batch_num = self.batch_num + 1
-            self.wait_for_completion(batches)
+            self.wait_for_completion(batches, False)
             self.num_to_be_refined -= self.num_batches * self.num_samples_per_batch
             refined = True
         if refined:
