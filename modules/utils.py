@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import subprocess
+import csv
 
 def generate_grid(locations, filename = 'grid.txt'):
     """
@@ -51,29 +52,25 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     if iteration >= total:
         print()
 
-def print_hits(hit_locations, filename):
+def print_hits(hit_locations, filename = 'hits.csv'):
     """
     Function that prints all the hits to a file
     IN:
         hit_locations(list(Location)): All the hits that need to be printed
         filename (String) : The filename that will be saved
     """
-    header = []
-    grid = []
-    for hit in hit_locations:
-        current_hit = []
-        hit.revert_variables_to_original_scales()
-        for key, value in hit.properties.items():
-            if len(grid) == 0:
-                header.append(key)
-            current_hit.append(value)
-        for key, value in hit.dimensions.items():
-            if len(grid) == 0:
-                header.append(key.name)
-            current_hit.append(value)
-        grid.append(current_hit)
-    DELIMITER = ', '
-    np.savetxt(filename, grid, fmt = "%s", delimiter = DELIMITER, header = DELIMITER.join(header), comments = '')
+    with open(filename, 'a') as file:
+        for hit in hit_locations:
+            hit.revert_variables_to_original_scales()
+            current_dict = {}
+            for dimension in sorted(hit.dimensions.keys(), key = lambda d: d.name):
+                current_dict[dimension.name] = hit.dimensions[dimension]
+            for prop in sorted(hit.properties.keys()):
+                current_dict[prop] = hit.properties[prop]
+            writer = csv.DictWriter(file, current_dict.keys())
+            if file.tell() == 0:
+                writer.writeheader()
+            writer.writerow(current_dict)
 
 def generate_slurm_file(command, batch_num, output_folder):
     slurm_folder = get_or_create_folder(output_folder, 'slurms')

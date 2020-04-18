@@ -80,6 +80,7 @@ class Stroopwafel:
                         location.properties['mixture_weight'] = location.properties['p'] / Q
                         location.properties['exact_weight'] = location.properties['p'] / location.properties['q_pdf']
                 self.hits.extend(locations)
+                print_hits(locations, filename = self.output_folder + "/hits.csv")
             self.finished += self.num_samples_per_batch
             printProgressBar(self.finished, self.num_systems, prefix = 'progress', suffix = 'complete', length = 20)
             if is_exploration_phase:
@@ -182,6 +183,5 @@ class Stroopwafel:
         IN:
             filename(String): It tells what is the filename to store all the hits and its properties
         """
-        print_hits(self.hits, filename)
         (stroopwafel_rate, uncertainity) = self.determine_rate(self.hits)
         print ("Rate of hits = %f with uncertainity = %f" %(stroopwafel_rate, uncertainity))
