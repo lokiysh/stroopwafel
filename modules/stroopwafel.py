@@ -34,52 +34,6 @@ class Stroopwafel:
             return self.num_explored < self.num_systems
         return self.num_explored / self.num_systems < self.fraction_explored
 
-    def mark_location_as_hits(self, points, hit_locations):
-        """
-        Function to mark locations as hits (gives a score in the range [0, 1])
-        IN:
-            points (list(Location)) : List of Location that was generated initially
-            hit_locations (list(Location)) : list of hits (interesting points)
-        """
-        hit_locations = set(hit_locations)
-        for point in points:
-            # TODO : Can we think of some way to give some score to all the points? An algorithm to see how distant it is from an interesting point
-            if point in hit_locations:
-                point.hit_score = 1
-
-    def calculate_weights_of_hits(self, hit_locations, adapted_distributions):
-        """
-        Function that calculates the weights of the hits based on their priors
-        IN:
-            hit_locations (list(Location)) : the locations which have hits
-            adapted_distributions (list(NDimensionalDistribution)) : list of adpated distributions, for example, gaussians
-        """
-        num_distributions = len(adapted_distributions)
-        num_hits = len(hit_locations)
-        samples = np.zeros((num_hits, self.num_dimensions))
-        pi_x = np.ones(num_hits)
-        q_x = np.zeros((num_distributions, num_hits))
-        for counter, location in enumerate(hit_locations):
-            index = 0
-            for dimension in sorted(location.dimensions.keys(), key = lambda d: d.name):
-                samples[counter][index] = location.dimensions[dimension]
-                pi_x[counter] *= dimension.prior(dimension, location.dimensions[dimension])
-                index = index + 1
-        for counter, distribution in enumerate(adapted_distributions):
-            mean = np.zeros(self.num_dimensions)
-            variance = np.zeros((self.num_dimensions, self.num_dimensions))
-            index = 0
-            for dimension in sorted(distribution.mean.dimensions.keys(), key = lambda d: d.name):
-                mean[index] = distribution.mean.dimensions[dimension]
-                variance[index][index] = distribution.sigma.dimensions[dimension]
-                index = index + 1
-            q_x[counter, :] = (multivariate_normal.pdf(samples, mean, variance, allow_singular = True) * distribution.biased_weight) / (1 - distribution.rejection_rate)
-        q_pdf = np.sum(q_x, axis = 0) / num_distributions
-        for counter, location in enumerate(hit_locations):
-            Q = (self.fraction_explored * pi_x[counter]) + ((1 - self.fraction_explored) * q_pdf[counter])
-            location.weight = pi_x[counter] / Q
-            location.properties['exact_weight'] = pi_x[counter] / q_pdf[counter]
-
     def determine_rate(self, hit_locations):
         """
         Function that determines the rate of producing the hits from the algorithm
@@ -92,12 +46,12 @@ class Stroopwafel:
             return (0, 0)
         phi = np.ones(len(hit_locations))
         for index, location in enumerate(hit_locations):
-            phi[index] = location.weight
+            phi[index] = location.properties['mixture_weight']
         stroopwafel_rate = np.round(np.sum(phi) / self.num_systems, 4)
         uncertainity = np.round(np.std(phi, ddof = 1) / np.sqrt(self.num_systems), 6)
         return (stroopwafel_rate, uncertainity)
 
-    def wait_for_completion(self, batches, is_exploration_phase):
+    def process_batches(self, batches, is_exploration_phase):
         """
         Function that waits for the completion of the commands which were running in batches
         IN:
@@ -108,7 +62,23 @@ class Stroopwafel:
                 batch['process'].wait()
             if self.interesting_systems_method != None:
                 locations = self.interesting_systems_method(batch)
-                [location.transform_variables_to_new_scales() for location in locations]
+                for location in locations:
+                    location.transform_variables_to_new_scales()
+                    location.calculate_prior_probability()
+                if is_exploration_phase:
+                    # TODO: Get q_pdf from the original N dimensional distribution, for now setting as prior
+                    for location in locations:
+                        location.properties['q_pdf'] = location.properties['p']
+                        location.properties['mixture_weight'] = 1
+                        location.properties['exact_weight'] = 1
+                else:
+                    for distribution in self.adapted_distributions:
+                        distribution.calculate_probability_of_locations_from_distribution(locations)
+                    for location in locations:
+                        location.properties['q_pdf'] /= len(self.adapted_distributions) #normalized
+                        Q = (self.fraction_explored * location.properties['p']) + ((1 - self.fraction_explored) * location.properties['q_pdf'])
+                        location.properties['mixture_weight'] = location.properties['p'] / Q
+                        location.properties['exact_weight'] = location.properties['p'] / location.properties['q_pdf']
                 self.hits.extend(locations)
             self.finished += self.num_samples_per_batch
             printProgressBar(self.finished, self.num_systems, prefix = 'progress', suffix = 'complete', length = 20)
@@ -160,7 +130,7 @@ class Stroopwafel:
                 current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)
                 batches.append(current_batch)
                 self.batch_num = self.batch_num + 1
-            self.wait_for_completion(batches, True)
+            self.process_batches(batches, True)
         print ("\nExploratory phase finished, found %d hits out of %d explored. Rate = %.6f (fexpl = %.4f)" %(len(self.hits), self.num_explored, len(self.hits) / self.num_explored, self.fraction_explored))
 
     def adapt(self, n_dimensional_distribution_type):
@@ -200,7 +170,7 @@ class Stroopwafel:
                 current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)
                 batches.append(current_batch)
                 self.batch_num = self.batch_num + 1
-            self.wait_for_completion(batches, False)
+            self.process_batches(batches, False)
             self.num_to_be_refined -= self.num_batches * self.num_samples_per_batch
             refined = True
         if refined:
@@ -212,12 +182,6 @@ class Stroopwafel:
         IN:
             filename(String): It tells what is the filename to store all the hits and its properties
         """
-        try:
-            for hit in self.hits:
-                hit.properties['exact_weight'] = 1
-            self.calculate_weights_of_hits(self.hits[len(self.adapted_distributions):], self.adapted_distributions)
-        except AttributeError:
-            pass
         print_hits(self.hits, filename)
         (stroopwafel_rate, uncertainity) = self.determine_rate(self.hits)
         print ("Rate of hits = %f with uncertainity = %f" %(stroopwafel_rate, uncertainity))

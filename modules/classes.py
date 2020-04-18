@@ -53,13 +53,11 @@ class Location:
     dimensions (dict(Dimension : float)) : dictionary of mapping between class Dimension and its float value
     properties (dict) : A location could have more properties which we dont want to stroopwafelize but still store. For example, metallicity_2 (same as metallicity_1) or ID from Compas
     hit_score (float) : The hit value of the location in the range [0.0, 1.0], describes how interesting is this location [Currently unused]
-    weight (float) : A field to store the weightage of this location
     """
-    def __init__(self, dimensions, properties, hit_score = 0, weight = 1):
+    def __init__(self, dimensions, properties, hit_score = 0):
         self.dimensions = dimensions
         self.hit_score = hit_score
         self.properties = properties
-        self.weight = weight
 
     def __key(self):
         return str(self.dimensions.items())
@@ -98,3 +96,8 @@ class Location:
             elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
                 self.dimensions[dimension] = np.sin(value)
 
+    def calculate_prior_probability(self):
+        p = 1
+        for dimension, value in self.dimensions.items():
+            p *= dimension.prior(dimension, value)
+        self.properties['p'] = p

@@ -46,6 +46,9 @@ class InitialDistribution(NDimensionalDistribution):
         locations = [Location(dict(zip(headers, row)), {}) for row in samples]
         return (locations, mask)
 
+    def calculate_probability_of_locations_from_distribution(self, locations):
+        pass
+
 class Gaussian(NDimensionalDistribution):
     """
     This class inherits from NDimensionalDistribution. It will be used during the refinement phase to draw adapted distributions.
@@ -58,6 +61,7 @@ class Gaussian(NDimensionalDistribution):
         self.mean = mean
         self.sigma = sigma
         self.kappa = kappa
+        self.cov = np.power(self.kappa * np.asarray(self.sigma.to_array()), 2)
         self.biased_weight = biased_weight
         self.rejection_rate = 0
     """
@@ -75,7 +79,7 @@ class Gaussian(NDimensionalDistribution):
             num_samples = int(np.ceil(num_samples / (1 - self.rejection_rate)))
         num_samples = int(num_samples * self.biased_weight)
         mask = np.ones(num_samples, dtype = bool)
-        current_samples = multivariate_normal.rvs(mean = self.mean.to_array(), cov = np.power(self.kappa * np.asarray(self.sigma.to_array()), 2), size = num_samples)
+        current_samples = multivariate_normal.rvs(mean = self.mean.to_array(), cov = self.cov, size = num_samples)
         headers = sorted(self.mean.dimensions.keys(), key = lambda d: d.name)
         for index, dimension in enumerate(headers):
             mask &= dimension.is_sample_within_bounds(current_samples[:, index])
@@ -118,7 +122,7 @@ class Gaussian(NDimensionalDistribution):
             current_batch['batch_num'] = "gauss_" + str(batch_num)
             param = dict()
             param["mean"] = gaussian.mean.to_array()
-            param["cov"] = [(i * gaussian.kappa)**2 for i in gaussian.sigma.to_array()]
+            param["cov"] = gaussian.cov.tolist()
             param["dimension_ranges"] = dimension_ranges
             command = ["python " + os.getcwd() + "/modules/find_rejection_rate.py '" + json.dumps(param) + "'"]
             current_batch['process'] = run_code(command, current_batch['batch_num'], output_folder, debug, run_on_helios)
@@ -130,3 +134,14 @@ class Gaussian(NDimensionalDistribution):
                     batch['process'].wait()
                     batch['gaussian'].rejection_rate = float(get_slurm_output(output_folder, batch['batch_num']))
                 batches = []
+
+    """
+    Given a list of locations, calculates the probability of drawing each location from the given gaussian
+    """
+    def calculate_probability_of_locations_from_distribution(self, locations):
+        mean = self.mean.to_array()
+        variance = np.diagflat(self.cov)
+        for location in locations:
+            pdf = multivariate_normal.pdf(location.to_array(), mean, variance, allow_singular = True)
+            pdf = pdf * self.biased_weight / (1 - self.rejection_rate)
+            location.properties['q_pdf'] = location.properties.get('q_pdf', 0) + pdf

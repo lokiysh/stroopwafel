@@ -71,9 +71,7 @@ def print_hits(hit_locations, filename):
             if len(grid) == 0:
                 header.append(key.name)
             current_hit.append(value)
-        current_hit.append(hit.weight)
         grid.append(current_hit)
-    header.append('weight')
     DELIMITER = ', '
     np.savetxt(filename, grid, fmt = "%s", delimiter = DELIMITER, header = DELIMITER.join(header), comments = '')
 
