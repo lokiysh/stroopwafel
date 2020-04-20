@@ -71,6 +71,7 @@ def print_hits(hit_locations, filename = 'hits.csv'):
             if file.tell() == 0:
                 writer.writeheader()
             writer.writerow(current_dict)
+            hit.transform_variables_to_new_scales()
 
 def generate_slurm_file(command, batch_num, output_folder):
     slurm_folder = get_or_create_folder(output_folder, 'slurms')
