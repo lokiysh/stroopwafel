@@ -141,7 +141,10 @@ class Gaussian(NDimensionalDistribution):
     def calculate_probability_of_locations_from_distribution(self, locations):
         mean = self.mean.to_array()
         variance = np.diagflat(self.cov)
+        samples = []
         for location in locations:
-            pdf = multivariate_normal.pdf(location.to_array(), mean, variance, allow_singular = True)
-            pdf = pdf * self.biased_weight / (1 - self.rejection_rate)
-            location.properties['q_pdf'] = location.properties.get('q_pdf', 0) + pdf
+            samples.append(location.to_array())
+        pdf = multivariate_normal.pdf(samples, mean, variance, allow_singular = True)
+        pdf = (pdf * self.biased_weight) / (1 - self.rejection_rate)
+        for index, location in enumerate(locations):
+            location.properties['q_pdf'] = location.properties.get('q_pdf', 0) + pdf[index]
