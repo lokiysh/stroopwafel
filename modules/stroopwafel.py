@@ -69,11 +69,12 @@ class Stroopwafel:
                     # TODO: Get q_pdf from the original N dimensional distribution, for now setting as prior
                     pass
                 else:
+                    fraction_explored = self.num_explored / self.num_systems
                     for distribution in self.adapted_distributions:
                         distribution.calculate_probability_of_locations_from_distribution(locations)
                     for location in locations:
                         location.properties['q_pdf'] /= len(self.adapted_distributions) #normalized
-                        Q = (self.fraction_explored * location.properties['p']) + ((1 - self.fraction_explored) * location.properties['q_pdf'])
+                        Q = (fraction_explored * location.properties['p']) + ((1 - fraction_explored) * location.properties['q_pdf'])
                         location.properties['mixture_weight'] = location.properties['p'] / Q
                         location.properties['exact_weight'] = location.properties['p'] / location.properties['q_pdf']
                     print_hits(locations, filename = self.output_folder + "/hits.csv")
@@ -138,22 +139,22 @@ class Stroopwafel:
             n_dimensional_distribution_type(NDimensionalDistribution) : This tells stroopwafel what kind of distribution is to be adapted for refinment phase
         """
         self.num_to_be_refined = self.num_systems - self.num_explored
-        if self.num_to_be_refined > 0:
-            average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / self.num_dimensions)
-            self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(self.hits, average_density_one_dim)
-            n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches, self.output_folder, self.debug, self.run_on_helios)
-            locations = []
-            for distribution in self.adapted_distributions:
-                locations.append(distribution.mean)
-            for distribution in self.adapted_distributions:
-                distribution.calculate_probability_of_locations_from_distribution(locations)
-            for location in locations:
-                location.properties['q_pdf'] /= len(self.adapted_distributions)
-                Q = (self.fraction_explored * location.properties['p']) + ((1 - self.fraction_explored) * location.properties['q_pdf'])
-                location.properties['mixture_weight'] = location.properties['p'] / Q
-                location.properties['exact_weight'] = 1
-            print_hits(locations, filename = self.output_folder + "/hits.csv")
-            print ("Adaptation phase finished!")
+        average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / self.num_dimensions)
+        self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(self.hits, average_density_one_dim)
+        n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches, self.output_folder, self.debug, self.run_on_helios)
+        locations = []
+        fraction_explored = self.num_explored / self.num_systems
+        for distribution in self.adapted_distributions:
+            locations.append(distribution.mean)
+        for distribution in self.adapted_distributions:
+            distribution.calculate_probability_of_locations_from_distribution(locations)
+        for location in locations:
+            location.properties['q_pdf'] /= len(self.adapted_distributions)
+            Q = (fraction_explored * location.properties['p']) + ((1 - fraction_explored) * location.properties['q_pdf'])
+            location.properties['mixture_weight'] = location.properties['p'] / Q
+            location.properties['exact_weight'] = 1
+        print_hits(locations, filename = self.output_folder + "/hits.csv")
+        print ("Adaptation phase finished!")
                 
     def refine(self):
         """
