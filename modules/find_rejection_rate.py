@@ -9,7 +9,7 @@ if (len(sys.argv) > 1):
     mean = params['mean']
     cov = params['cov']
     dimension_ranges = params['dimension_ranges']
-    num_samples = 10000
+    num_samples = 1000000
 
     mask = np.ones(num_samples, dtype = bool)
     current_samples = multivariate_normal.rvs(mean = mean, cov = cov, size = num_samples)
