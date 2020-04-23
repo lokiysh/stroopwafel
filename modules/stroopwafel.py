@@ -138,8 +138,8 @@ class Stroopwafel:
         IN:
             n_dimensional_distribution_type(NDimensionalDistribution) : This tells stroopwafel what kind of distribution is to be adapted for refinment phase
         """
+        self.num_to_be_refined = self.num_systems - self.num_explored
         if len(self.hits) > 0:
-            self.num_to_be_refined = self.num_systems - self.num_explored
             average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / self.num_dimensions)
             self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(self.hits, average_density_one_dim)
             n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches, self.output_folder, self.debug, self.run_on_helios)

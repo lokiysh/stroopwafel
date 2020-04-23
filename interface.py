@@ -126,8 +126,7 @@ def interesting_systems(batch):
                     location[dimension] = system[dimension.name]
             properties = dict()
             properties['batch'] = batch['number']
-            for prop in ('SEED', 'Metallicity_2', 'Mass_2', 'Eccentricity'):
-                properties[prop] = system[prop]
+            properties['SEED'] = system['SEED']
             locations.append(classes.Location(location, properties))
         return locations
     except IOError as error:
