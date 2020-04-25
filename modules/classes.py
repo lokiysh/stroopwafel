@@ -57,6 +57,13 @@ class Location:
         self.dimensions = dimensions
         self.properties = properties
 
+    """
+    This method creates a location instance when supplied with a dimension hash and the row of samples. 
+    Each key of the row which corresponds to a dimension goes to the dimensions property and the rest goes to the properties property
+    IN:
+        dimension_hash(dict(string, Dimension)) : Dictionary having key as a name of Dimension and mapping it to the Dimension object
+        row_hash(dict(string, float)) : Row we want to hash to
+    """
     @classmethod
     def create_location(cls, dimensions_hash, row_hash):
         dimensions = dict()
@@ -70,18 +77,9 @@ class Location:
         dimensions[dimensions_hash['q']] = row_hash['Mass_2'] / row_hash['Mass_1']
         return Location(dimensions, properties)
 
-
-    def __key(self):
-        return str(self.dimensions.items())
-
-    def __hash__(self):
-        return hash(self.__key())
-
-    def __eq__(self, other):
-        if isinstance(other, Location):
-            return self.__key() == other.__key()
-        return NotImplemented
-
+    """
+    Converts the current object of Location class to an array sorted by the key name
+    """
     def to_array(self):
         array = []
         for dimension in sorted(self.dimensions.keys(), key = lambda d: d.name):
@@ -94,6 +92,9 @@ class Location:
             string += dimension.name + " : " + str(self.dimensions[dimension]) + ","
         return string
 
+    """
+    Converts back each value of the location to the original scale defined in the interface
+    """
     def revert_variables_to_original_scales(self):
         for dimension, value in self.dimensions.items():
             if dimension.sampler.__name__ == sp.flat_in_log.__name__:
@@ -101,6 +102,9 @@ class Location:
             elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
                 self.dimensions[dimension] = np.arcsin(value)
 
+    """
+    Converts each value of the location to the new transformed scale
+    """
     def transform_variables_to_new_scales(self):
         for dimension, value in self.dimensions.items():
             if dimension.sampler.__name__ == sp.flat_in_log.__name__:

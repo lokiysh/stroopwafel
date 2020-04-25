@@ -49,6 +49,13 @@ class Stroopwafel:
         return (stroopwafel_rate, uncertainity)
 
     def calculate_mixture_weights(self, locations):
+        """
+        Function that will calculate the mixture weights of all the locations provided
+        IN:
+            locations (list(Location)) : All the locations for which weight needs to be computed
+        OUT:
+            weights (list(float)) : A list of computed weights
+        """
         weights = []
         fraction_explored = self.num_explored / self.total_num_systems
         for distribution in self.adapted_distributions:
@@ -66,6 +73,7 @@ class Stroopwafel:
         Function that waits for the completion of the commands which were running in batches
         IN:
             batches (list(dict)) : list of instance of batches, each having a batch number and a subprocess instance to wait for
+            is_exploration_phase (Boolean) : Whether the given batches come from exploration phase or not
         """
         for batch in batches:
             if batch['process']:
@@ -131,6 +139,7 @@ class Stroopwafel:
         """
         Adaptive phase of stroopwafel
         IN:
+            dimensions (List(Dimension)) : The dimension list of variables
             n_dimensional_distribution_type(NDimensionalDistribution) : This tells stroopwafel what kind of distribution is to be adapted for refinment phase
         """
         if self.num_hits > 0:
@@ -173,6 +182,8 @@ class Stroopwafel:
     def postprocess(self, dimensions):
         """
         Postprocessing phase of stroopwafel
+        IN:
+            dimensions (List(Dimension)) : The dimension list of variables
         """
         if self.num_explored != self.total_num_systems:
             locations = read_samples(self.output_filename, dimensions)

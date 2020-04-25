@@ -5,7 +5,7 @@ Defines different kinds of samplers
 """
 def uniform(num_samples, **kwargs):
     """
-    static method to run a uniform sampling for the range [x, y)
+     method to run a uniform sampling for the range [x, y)
     IN:
         num_samples : number of samples to be returned
         x (float) : starting value
@@ -19,8 +19,7 @@ def uniform(num_samples, **kwargs):
 
 def flat_in_log(num_samples, **kwargs):
     """
-    static method to run a power law for the range [x, y), assuming power is -1
-    #TODO : make it generic for other powers if required
+    method to run a flat_in_log sampling for the range[x, y]
     IN:
         num_samples : number of samples to be returned
         x (float) : starting value
@@ -35,7 +34,7 @@ def flat_in_log(num_samples, **kwargs):
 
 def flat(num_samples, **kwargs):
     """
-    static method to run a sampling for a flat distribution
+    method to run a sampling for a flat distribution
     IN:
         num_samples : number of samples to be returned
         x (float) : The flat value for sampling
@@ -47,7 +46,7 @@ def flat(num_samples, **kwargs):
 
 def kroupa(num_samples = 1, **kwargs):
     """
-    static method to run a kroupa sampling for the range [x, y)
+    method to run a kroupa sampling for the range [x, y)
     IN:
         num_samples (int) : number of samples to be returned
         x (float) : starting value
@@ -61,9 +60,11 @@ def kroupa(num_samples = 1, **kwargs):
 
 def uniform_in_sine(num_samples, **kwargs):
     """
-    static method to run a uniform sine sampling  useful for example in solid angles sampling
+    method to run a uniform sine sampling  useful for example in solid angles sampling
     IN:
         num_samples (int) : number of samples to be returned
+        x (float) : starting value
+        y (float) : ending value
     OUT:
         a list of samples in the range [x, y) considering uniformly in sine sampling distribution
     """

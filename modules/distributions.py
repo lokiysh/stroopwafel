@@ -3,13 +3,12 @@ from scipy.stats import multivariate_normal
 from classes import Location
 import numpy as np
 from utils import *
-import sampler
-import prior
 import json
 
 class NDimensionalDistribution:
     """
-    This is a parent class for any NDimensional distribution. Any subclass of this class, must implement the run_sampler method.
+    This is a parent class for any NDimensional distribution. Any subclass of this class, must implement all the methods
+    defined in this class, for example the run_sampler method.
     Examples of NDimensionalDistribution are Gaussian class and InitialDistribution class. (See below)
     """
     def __init__(self, dimensions):
@@ -22,6 +21,7 @@ class NDimensionalDistribution:
 
     @abstractmethod
     def calculate_probability_of_locations_from_distribution(self, locations):
+        #This method must be implemented by all the sub classes
         pass
 
 class InitialDistribution(NDimensionalDistribution):
@@ -50,7 +50,6 @@ class InitialDistribution(NDimensionalDistribution):
         locations = [Location(dict(zip(headers, row)), {}) for row in samples]
         return (locations, mask)
 
-    @abstractmethod
     def calculate_probability_of_locations_from_distribution(self, locations):
         pass
 
@@ -60,15 +59,14 @@ class Gaussian(NDimensionalDistribution):
     mean (Location) : The mean location of the gaussian. It is of Location type and therefore stores all the dimension
     sigma (Location) : The sigma of the gaussian. Also of Location class type
     kappa (float) : An independent scaling factor describing how wide the gaussian can be.
-    rejection_rate (float) : A number which tells how often samples drawn are rejected because they are outside of the boundary.
     """
-    def __init__(self, mean, sigma, kappa = 1, biased_weight = 1):
+    def __init__(self, mean, sigma, kappa = 1):
         self.mean = mean
         self.sigma = sigma
         self.kappa = kappa
         self.cov = np.power(self.kappa * np.asarray(self.sigma.to_array()), 2)
-        self.biased_weight = biased_weight
         self.rejection_rate = 0
+        self.biased_weight = 1
     """
         This function tells the class how to draw the samples for this class
         IN:
@@ -109,12 +107,24 @@ class Gaussian(NDimensionalDistribution):
             gaussians.append(Gaussian(hit, Location(sigma, {})))
         return gaussians
 
+    """
+    This function is used to vary the width of the gaussian depending on how close it is to the edge of the dimension
+    """
     @staticmethod
     def __bound_factor(dimension, value):
         max_value = dimension.max_value
         min_value = dimension.min_value
         return np.minimum(max_value - value, value - min_value) / (max_value - min_value)
 
+    """
+    Calculates the rejection rate of each of the gaussians in batches
+    IN:
+        gaussians (List(Gaussian)) : The gaussians to calculate the rejection rate
+        num_batches (int) : The number of batches to run in parallel
+        output_folder (Path) : Path to the output folder
+        debug (Boolean) : If debug mode is on or off
+        run_on_helios (Boolean) : If running on helios clusters or not
+    """
     @classmethod
     def calculate_rejection_rate(self, gaussians, num_batches, output_folder, debug, run_on_helios):
         dimension_ranges = []
@@ -142,6 +152,8 @@ class Gaussian(NDimensionalDistribution):
 
     """
     Given a list of locations, calculates the probability of drawing each location from the given gaussian
+    IN:
+        locations (list(Location)) : list of locations
     """
     @abstractmethod
     def calculate_probability_of_locations_from_distribution(self, locations):
