@@ -125,18 +125,25 @@ def interesting_systems(batch):
 
 def selection_effects(sw):
     """
+    This is not a mandatory function, it was written to support selection effects
     Fills in selection effects for each of the distributions
     IN:
         sw (Stroopwafel) : Stroopwafel object
     """
     if hasattr(sw, 'adapted_distributions'):
         biased_masses = []
+        rows = []
         for distribution in sw.adapted_distributions:
-            biased_masses.append(np.power(max([distribution.mean.properties['Mass@DCO_1'], distribution.mean.properties['Mass@DCO_2']]), 2.2))
+            folder = os.path.join(output_folder, 'batch_' + str(distribution.mean.properties['batch']))
+            dco_file = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
+            dco_file.rename(columns = lambda x: x.strip(), inplace = True)
+            row = dco_file.loc[dco_file['SEED'] == distribution.mean.properties['SEED']]
+            rows.append([row.iloc[0]['Mass_1'], row.iloc[0]['Mass_2']])
+            biased_masses.append(np.power(max(rows[-1]), 2.2))
         # update the weights
         mean = np.mean(biased_masses)
-        for distribution in sw.adapted_distributions:
-            distribution.biased_weight = np.power(max([distribution.mean.properties['Mass@DCO_1'], distribution.mean.properties['Mass@DCO_2']]), 2.2) / mean
+        for index, distribution in enumerate(sw.adapted_distributions):
+            distribution.biased_weight = np.power(max(rows[index]), 2.2) / mean
 
 #STEP 3: Initialize the stroopwafel object with the user defined functions and create dimensions and initial distribution
 dimensions = create_dimensions()
