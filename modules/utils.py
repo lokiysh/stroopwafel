@@ -2,6 +2,7 @@ import numpy as np
 import os
 import subprocess
 import csv
+import classes
 
 def generate_grid(locations, filename = 'grid.txt'):
     """
@@ -52,26 +53,41 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     if iteration >= total:
         print()
 
-def print_hits(hit_locations, filename = 'hits.csv'):
+def print_samples(samples, filename, mode):
     """
     Function that prints all the hits to a file
     IN:
-        hit_locations(list(Location)): All the hits that need to be printed
+        samples(list(Location)): All the samples that need to be printed
         filename (String) : The filename that will be saved
     """
-    with open(filename, 'a') as file:
-        for hit in hit_locations:
-            hit.revert_variables_to_original_scales()
+    with open(filename, mode) as file:
+        for sample in samples:
             current_dict = {}
-            for dimension in sorted(hit.dimensions.keys(), key = lambda d: d.name):
-                current_dict[dimension.name] = hit.dimensions[dimension]
-            for prop in sorted(hit.properties.keys()):
-                current_dict[prop] = hit.properties[prop]
+            for dimension in sorted(sample.dimensions.keys(), key = lambda d: d.name):
+                current_dict[dimension.name] = sample.dimensions[dimension]
+            for prop in sorted(sample.properties.keys()):
+                current_dict[prop] = sample.properties[prop]
             writer = csv.DictWriter(file, current_dict.keys())
             if file.tell() == 0:
                 writer.writeheader()
             writer.writerow(current_dict)
-            hit.transform_variables_to_new_scales()
+
+def read_samples(filename, dimensions, only_hits = False):
+    """
+    Function that reads samples from a given file
+    """
+    with open(filename, newline = '') as file:
+        samples = csv.DictReader(file)
+        dimensions_hash = dict()
+        for dimension in dimensions:
+            dimensions_hash[dimension.name] = dimension
+        locations = []
+        for sample in samples:
+            if only_hits and int(sample['is_hit']) == 0:
+                continue
+            sample.update((k, float(v)) for k, v in sample.items())
+            locations.append(classes.Location.create_location(dimensions_hash, sample))
+        return locations
 
 def generate_slurm_file(command, batch_num, output_folder):
     slurm_folder = get_or_create_folder(output_folder, 'slurms')

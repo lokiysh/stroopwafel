@@ -20,6 +20,10 @@ class NDimensionalDistribution:
         #This method must be implemented by all the sub classes
         pass
 
+    @abstractmethod
+    def calculate_probability_of_locations_from_distribution(self, locations):
+        pass
+
 class InitialDistribution(NDimensionalDistribution):
     """
     This class inherits from NDimensionalDistribution. It will be used during the exploration phase to draw from Sampler class of Dimensions.
@@ -46,6 +50,7 @@ class InitialDistribution(NDimensionalDistribution):
         locations = [Location(dict(zip(headers, row)), {}) for row in samples]
         return (locations, mask)
 
+    @abstractmethod
     def calculate_probability_of_locations_from_distribution(self, locations):
         pass
 
@@ -138,16 +143,14 @@ class Gaussian(NDimensionalDistribution):
     """
     Given a list of locations, calculates the probability of drawing each location from the given gaussian
     """
+    @abstractmethod
     def calculate_probability_of_locations_from_distribution(self, locations):
         mean = self.mean.to_array()
         variance = np.diagflat(self.cov)
         samples = []
         for location in locations:
             samples.append(location.to_array())
-        pdf = multivariate_normal.pdf(samples, mean, variance, allow_singular = True)
-        pdf = (pdf * self.biased_weight) / (1 - self.rejection_rate)
-        if len(locations) == 1:
-            location.properties['q_pdf'] = location.properties.get('q_pdf', 0) + pdf
-        else:
-            for index, location in enumerate(locations):
-                location.properties['q_pdf'] = location.properties.get('q_pdf', 0) + pdf[index]
+        pdf = multivariate_normal.pdf(samples, mean, variance)
+        pdf = (pdf * self.biased_weight) * (1 - self.rejection_rate)
+        for index, location in enumerate(locations):
+            location.properties['q_pdf'] = location.properties.get('q_pdf', 0) + pdf[index]

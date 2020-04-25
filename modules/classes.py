@@ -52,12 +52,24 @@ class Location:
     Describe a point in N-Dimensional space
     dimensions (dict(Dimension : float)) : dictionary of mapping between class Dimension and its float value
     properties (dict) : A location could have more properties which we dont want to stroopwafelize but still store. For example, metallicity_2 (same as metallicity_1) or ID from Compas
-    hit_score (float) : The hit value of the location in the range [0.0, 1.0], describes how interesting is this location [Currently unused]
     """
-    def __init__(self, dimensions, properties, hit_score = 0):
+    def __init__(self, dimensions, properties):
         self.dimensions = dimensions
-        self.hit_score = hit_score
         self.properties = properties
+
+    @classmethod
+    def create_location(cls, dimensions_hash, row_hash):
+        dimensions = dict()
+        properties = dict()
+        for key, value in row_hash.items():
+            if key in dimensions_hash:
+                dimensions[dimensions_hash[key]] = value
+            else:
+                properties[key] = value
+        # TODO: Find a way to take me out from here please!!!
+        dimensions[dimensions_hash['q']] = row_hash['Mass_2'] / row_hash['Mass_1']
+        return Location(dimensions, properties)
+
 
     def __key(self):
         return str(self.dimensions.items())
@@ -100,4 +112,4 @@ class Location:
         p = 1
         for dimension, value in self.dimensions.items():
             p *= dimension.prior(dimension, value)
-        self.properties['p'] = p
+        return p
