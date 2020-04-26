@@ -73,8 +73,6 @@ class Location:
                 dimensions[dimensions_hash[key]] = value
             else:
                 properties[key] = value
-        # TODO: Find a way to take me out from here please!!!
-        dimensions[dimensions_hash['q']] = row_hash['Mass_2'] / row_hash['Mass_1']
         return Location(dimensions, properties)
 
     """
