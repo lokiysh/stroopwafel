@@ -156,7 +156,7 @@ sw.adapt(dimensions, n_dimensional_distribution_type = distributions.Gaussian) #
 ## Do selection effects
 #selection_effects(sw)
 sw.refine() #Stroopwafel will draw samples from the adapted distributions
-sw.postprocess(dimensions, only_hits = True) #Run it to create weights, if you want only hits in the output, then make only_hits = True
+sw.postprocess(dimensions, only_hits = False) #Run it to create weights, if you want only hits in the output, then make only_hits = True
 
 end_time = time.time()
 print ("Total running time = %d seconds" %(end_time - start_time))

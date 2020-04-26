@@ -61,11 +61,12 @@ class Stroopwafel:
         for distribution in self.adapted_distributions:
             distribution.calculate_probability_of_locations_from_distribution(locations)
         for location in locations:
-            location.properties['p'] = location.calculate_prior_probability()
-            location.properties['q_pdf'] /= len(self.adapted_distributions)
-            Q = (fraction_explored * location.properties['p']) + ((1 - fraction_explored) * location.properties['q_pdf'])
-            location.properties['mixture_weight'] = location.properties['p'] / Q
+            prior_pdf = location.calculate_prior_probability()
+            q_pdf = location.properties.pop('q_pdf') / len(self.adapted_distributions)
+            Q = (fraction_explored * prior_pdf) + ((1 - fraction_explored) * q_pdf)
+            location.properties['mixture_weight'] = prior_pdf / Q
             weights.append(location.properties['mixture_weight'])
+
         return weights
 
     def process_batches(self, batches, is_exploration_phase):
