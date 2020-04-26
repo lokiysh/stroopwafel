@@ -179,14 +179,15 @@ class Stroopwafel:
         if self.num_explored != self.total_num_systems:
             print ("\nRefinement phase finished, found %d hits out of %d tried. Rate = %.6f" %(self.num_hits - len(self.adapted_distributions), (self.total_num_systems - self.num_explored), (self.num_hits - len(self.adapted_distributions)) / (self.total_num_systems - self.num_explored)))
 
-    def postprocess(self, dimensions):
+    def postprocess(self, dimensions, only_hits = False):
         """
         Postprocessing phase of stroopwafel
         IN:
             dimensions (List(Dimension)) : The dimension list of variables
+            only_hits (Boolean) : If you want to print only the hits
         """
         if self.num_explored != self.total_num_systems:
-            locations = read_samples(self.output_filename, dimensions)
+            locations = read_samples(self.output_filename, dimensions, only_hits)
             [location.transform_variables_to_new_scales() for location in locations]
             weights = self.calculate_mixture_weights(locations)
             [location.revert_variables_to_original_scales() for location in locations]
