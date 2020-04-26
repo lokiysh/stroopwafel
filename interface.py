@@ -134,7 +134,7 @@ def selection_effects(sw):
         biased_masses = []
         rows = []
         for distribution in sw.adapted_distributions:
-            folder = os.path.join(output_folder, 'batch_' + str(distribution.mean.properties['batch']))
+            folder = os.path.join(output_folder, 'batch_' + str(int(distribution.mean.properties['batch'])))
             dco_file = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
             dco_file.rename(columns = lambda x: x.strip(), inplace = True)
             row = dco_file.loc[dco_file['SEED'] == distribution.mean.properties['SEED']]
