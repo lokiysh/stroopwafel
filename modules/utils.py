@@ -173,3 +173,16 @@ def get_or_create_folder(path, name):
     if not os.path.exists(folder):
         os.makedirs(folder)
     return folder
+
+def print_distributions(filename, distributions):
+    with open(filename, 'w') as file:
+        for distribution in distributions:
+            current_dict = dict()
+            for dimension, value in distribution.mean.dimensions.items():
+                current_dict[dimension.name + '_mean'] = value
+            for dimension, value in distribution.sigma.dimensions.items():
+                current_dict[dimension.name + '_sigma'] = value
+            writer = csv.DictWriter(file, current_dict.keys())
+            if file.tell() == 0:
+                writer.writeheader()
+            writer.writerow(current_dict)

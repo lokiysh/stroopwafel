@@ -149,6 +149,7 @@ class Stroopwafel:
             average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(dimensions))
             self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim)
             n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
+            print_distributions(self.output_folder + '/distributions.csv', self.adapted_distributions)
         print ("Adaptation phase finished!")
                 
     def refine(self):
@@ -195,3 +196,5 @@ class Stroopwafel:
             print_samples(locations, self.output_filename, 'w')
             (stroopwafel_rate, uncertainity) = self.determine_rate(weights)
             print ("Rate of hits = %f with uncertainity = %f" %(stroopwafel_rate, uncertainity))
+        with open(self.output_folder + '/stroopwafel_logs.txt', 'w') as log_file:
+            log_file.write("NUM_SYSTEMS = %d, NUM_EXPLORED = %d, f_expl = %f\n" %(self.total_num_systems, self.num_explored, self.fraction_explored))
