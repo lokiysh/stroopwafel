@@ -135,6 +135,8 @@ class Stroopwafel:
                 self.batch_num = self.batch_num + 1
             self.process_batches(batches, True)
         print ("\nExploratory phase finished, found %d hits out of %d explored. Rate = %.6f (fexpl = %.4f)" %(self.num_hits, self.num_explored, self.num_hits / self.num_explored, self.fraction_explored))
+        print_logs(self.output_folder, "num_explored", self.num_explored)
+        print_logs(self.output_folder, "fraction_explored", self.fraction_explored)
 
     def adapt(self, dimensions, n_dimensional_distribution_type):
         """
@@ -179,7 +181,9 @@ class Stroopwafel:
                 self.batch_num = self.batch_num + 1
             self.process_batches(batches, False)
         if self.num_explored != self.total_num_systems:
-            print ("\nRefinement phase finished, found %d hits out of %d tried. Rate = %.6f" %(self.num_hits - len(self.adapted_distributions), (self.total_num_systems - self.num_explored), (self.num_hits - len(self.adapted_distributions)) / (self.total_num_systems - self.num_explored)))
+            num_refined = self.total_num_systems - self.num_explored
+            print_logs(self.output_folder, "total_num_systems", self.num_explored + num_refined)
+            print ("\nRefinement phase finished, found %d hits out of %d tried. Rate = %.6f" %(self.num_hits - len(self.adapted_distributions), num_refined, (self.num_hits - len(self.adapted_distributions)) / num_refined))
 
     def postprocess(self, dimensions, only_hits = False):
         """
@@ -196,5 +200,6 @@ class Stroopwafel:
             print_samples(locations, self.output_filename, 'w')
             (stroopwafel_rate, uncertainity) = self.determine_rate(weights)
             print ("Rate of hits = %f with uncertainity = %f" %(stroopwafel_rate, uncertainity))
-        with open(self.output_folder + '/stroopwafel_logs.txt', 'w') as log_file:
-            log_file.write("NUM_SYSTEMS = %d, NUM_EXPLORED = %d, f_expl = %f\n" %(self.total_num_systems, self.num_explored, self.fraction_explored))
+            print_logs(self.output_folder, "rate_of_hits", stroopwafel_rate)
+            print_logs(self.output_folder, "uncertainity", uncertainity)
+        

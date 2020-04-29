@@ -186,3 +186,7 @@ def print_distributions(filename, distributions):
             if file.tell() == 0:
                 writer.writeheader()
             writer.writerow(current_dict)
+
+def print_logs(output_folder, log_string, log_value):
+    with open(output_folder + '/log.txt', 'a') as file:
+        file.write("%s = %f\n"%(log_string, log_value))
