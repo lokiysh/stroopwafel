@@ -18,7 +18,7 @@ class Stroopwafel:
         """
         Function which updates the fraction of region which is already explored
         """
-        unidentified_region_weight = 1.0 / (self.total_num_systems - self.num_explored)
+        unidentified_region_weight = 1.0 / (self.fraction_explored * self.total_num_systems)
         target_rate = float(self.num_hits) / self.num_explored
         numerator = target_rate * (np.sqrt(1. - target_rate) - np.sqrt(unidentified_region_weight))
         denominator = np.sqrt(1. - target_rate) * (np.sqrt(unidentified_region_weight * (1. - target_rate)) + target_rate)
