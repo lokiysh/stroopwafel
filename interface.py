@@ -102,6 +102,7 @@ def interesting_systems(batch):
     """
     try:
         folder = os.path.join(output_folder, batch['output_container'])
+        shutil.move(batch['grid_filename'], folder + '/grid_' + str(batch['number']) + '.csv')
         system_parameters = pd.read_csv(folder + '/BSE_System_Parameters.csv', skiprows = 2)
         system_parameters.rename(columns = lambda x: x.strip(), inplace = True)
         seeds = system_parameters['SEED']
@@ -118,7 +119,6 @@ def interesting_systems(batch):
         for sample in batch['samples']:
             if sample.properties['SEED'] in interesting_systems_seeds:
                 sample.properties['is_hit'] = 1
-        shutil.move(batch['grid_filename'], folder + '/grid_' + str(batch['number']) + '.csv')
         return len(dns)
     except IOError as error:
         print (error)
