@@ -84,7 +84,7 @@ def configure_code_run(batch):
         Additionally one must also store the grid_filename in the batch so that the grid file is created
     """
     batch_num = batch['number']
-    grid_filename = output_folder + '/grid_' + str(batch_num) + '.txt'
+    grid_filename = output_folder + '/grid_' + str(batch_num) + '.csv'
     output_container = 'batch_' + str(batch_num)
     compas_args = [compas_executable, "--grid", grid_filename, '--outputPath', output_folder, '--logfile-delimiter', 'COMMA', '--output-container', output_container, '--random-seed', np.random.randint(2, 2**63 - 1)]
     batch['grid_filename'] = grid_filename
@@ -118,6 +118,7 @@ def interesting_systems(batch):
         for sample in batch['samples']:
             if sample.properties['SEED'] in interesting_systems_seeds:
                 sample.properties['is_hit'] = 1
+        shutil.move(batch['grid_filename'], folder + '/grid_' + str(batch['number']) + '.csv')
         return len(dns)
     except IOError as error:
         print (error)

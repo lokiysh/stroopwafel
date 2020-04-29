@@ -1,5 +1,6 @@
 import os
 from utils import *
+import shutil
 
 class Stroopwafel:
 
@@ -79,20 +80,23 @@ class Stroopwafel:
         for batch in batches:
             if batch['process']:
                 batch['process'].wait()
+            hits = 0
             if self.interesting_systems_method != None:
-                self.num_hits += self.interesting_systems_method(batch)
+                hits = self.interesting_systems_method(batch)
+            if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems:
+                #This batch is not needed anymore, delete the folder
+                shutil.rmtree(self.output_folder + '/batch_' + str(batch['number']))
+                self.batch_num = self.batch_num - 1
+                continue
+            self.num_hits += hits
             print_samples(batch['samples'], self.output_filename, 'a')
             self.finished += self.num_samples_per_batch
             printProgressBar(self.finished, self.total_num_systems, prefix = 'progress', suffix = 'complete', length = 20)
             if is_exploration_phase:
                 self.num_explored += self.num_samples_per_batch
                 self.update_fraction_explored()
-                if not self.should_continue_exploring():
-                    break
             else:
                 self.num_to_be_refined -= self.num_samples_per_batch
-            if self.finished >= self.total_num_systems:
-                break
 
     def initialize(self, interesting_systems_method, configure_code_run, update_properties_method = None):
         """
