@@ -34,17 +34,20 @@ class Stroopwafel:
             return self.num_explored < self.total_num_systems
         return self.num_explored / self.total_num_systems < self.fraction_explored
 
-    def determine_rate(self, weights):
+    def determine_rate(self, locations):
         """
         Function that determines the rate of producing the hits from the algorithm
         IN:
-            hit_locations(list(Location)): All the hits that need to be printed
+            hit_locations(list(Location)): All the locations
         OUT:
             (float, float): A pair of values which has the rate of stroopwafel rate and the uncertainity in the rate
         """
-        if len(weights) == 0:
+        if len(locations) == 0:
             return (0, 0)
-        phi = np.asarray(weights)
+        phi = np.zeros(len(locations))
+        for index, location in enumerate(locations):
+            if location.properties['is_hit'] == 1:
+                phi[index] = location.properties['mixture_weight']
         stroopwafel_rate = np.round(np.sum(phi) / self.total_num_systems, 4)
         uncertainity = np.round(np.std(phi, ddof = 1) / np.sqrt(self.total_num_systems), 6)
         return (stroopwafel_rate, uncertainity)
@@ -202,7 +205,7 @@ class Stroopwafel:
             weights = self.calculate_mixture_weights(locations)
             [location.revert_variables_to_original_scales() for location in locations]
             print_samples(locations, self.output_filename, 'w')
-            (stroopwafel_rate, uncertainity) = self.determine_rate(weights)
+            (stroopwafel_rate, uncertainity) = self.determine_rate(locations)
             print ("Rate of hits = %f with uncertainity = %f" %(stroopwafel_rate, uncertainity))
             print_logs(self.output_folder, "rate_of_hits", stroopwafel_rate)
             print_logs(self.output_folder, "uncertainity", uncertainity)
