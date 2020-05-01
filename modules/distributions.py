@@ -64,7 +64,7 @@ class Gaussian(NDimensionalDistribution):
         self.mean = mean
         self.sigma = sigma
         self.kappa = kappa
-        self.cov = np.power(self.kappa * np.asarray(self.sigma.to_array()), 2)
+        (self.cov, self.bounded_factor) = self.__bound_factor(True)
         self.rejection_rate = 0
         self.biased_weight = 1
     """
@@ -103,18 +103,35 @@ class Gaussian(NDimensionalDistribution):
         for hit in hit_locations:
             sigma = dict()
             for variable, val in hit.dimensions.items():
-                sigma[variable] = (average_density_one_dim * self.__bound_factor(variable, val)) / variable.prior(variable, val)
+                sigma[variable] = average_density_one_dim / variable.prior(variable, val)
             gaussians.append(Gaussian(hit, Location(sigma, {})))
         return gaussians
 
     """
     This function is used to vary the width of the gaussian depending on how close it is to the edge of the dimension
     """
-    @staticmethod
-    def __bound_factor(dimension, value):
-        max_value = dimension.max_value
-        min_value = dimension.min_value
-        return np.minimum(max_value - value, value - min_value) / (max_value - min_value)
+    def __bound_factor(self, consider = True):
+        original_cov = np.power(np.asarray(self.sigma.to_array()), 2)
+        if not consider:
+            return (original_cov, 1)
+        min_values = []
+        max_values = []
+        cov = []
+        for dimension in sorted(self.mean.dimensions.keys(), key = lambda d: d.name):
+            min_values.append(dimension.min_value)
+            max_values.append(dimension.max_value)
+            mean = self.mean.dimensions[dimension]
+            sigma = self.sigma.dimensions[dimension]
+            value = min([dimension.max_value - mean, mean - dimension.min_value, sigma]) / 2
+            cov.append(value**2)
+        cov = np.asarray(cov)
+        mean = self.mean.to_array()
+        original_probability = multivariate_normal.cdf(max_values, mean, np.diagflat(original_cov), allow_singular = True) - \
+            multivariate_normal.cdf(min_values, mean, np.diagflat(original_cov), allow_singular = True)
+        new_probability = multivariate_normal.cdf(max_values, mean, np.diagflat(cov), allow_singular = True) - \
+            multivariate_normal.cdf(min_values, mean, np.diagflat(cov), allow_singular = True)
+        bounded_factor = original_probability / new_probability
+        return (cov, bounded_factor)
 
     """
     Calculates the rejection rate of each of the gaussians in batches
@@ -163,6 +180,6 @@ class Gaussian(NDimensionalDistribution):
         for location in locations:
             samples.append(location.to_array())
         pdf = multivariate_normal.pdf(samples, mean, variance, allow_singular = True)
-        pdf = (pdf * self.biased_weight) * (1 - self.rejection_rate)
+        pdf = (pdf * self.biased_weight) * (1 - self.rejection_rate) * self.bounded_factor
         for index, location in enumerate(locations):
             location.properties['q_pdf'] = location.properties.get('q_pdf', 0) + pdf[index]
