@@ -48,9 +48,9 @@ class Stroopwafel:
         for index, location in enumerate(locations):
             if location.properties['is_hit'] == 1:
                 phi[index] = location.properties['mixture_weight']
-        stroopwafel_rate = np.round(np.sum(phi) / self.total_num_systems, 4)
-        uncertainity = np.round(np.std(phi, ddof = 1) / np.sqrt(self.total_num_systems), 6)
-        return (stroopwafel_rate, uncertainity)
+        stroopwafel_rate = np.sum(phi) / self.total_num_systems
+        uncertainity = np.std(phi, ddof = 1) / np.sqrt(self.total_num_systems)
+        return (np.round(stroopwafel_rate, 6), np.round(uncertainity, 6))
 
     def calculate_mixture_weights(self, locations):
         """
