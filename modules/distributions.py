@@ -64,8 +64,8 @@ class Gaussian(NDimensionalDistribution):
         self.mean = mean
         self.sigma = sigma
         self.kappa = kappa
-        (self.cov, self.bounded_factor) = self.__bound_factor(True)
-        self.rejection_rate = 0
+        self.__bound_factor(True)
+        # self.rejection_rate = 0
         self.biased_weight = 1
     """
         This function tells the class how to draw the samples for this class
@@ -113,7 +113,8 @@ class Gaussian(NDimensionalDistribution):
     def __bound_factor(self, consider = True):
         original_cov = np.power(np.asarray(self.sigma.to_array()), 2)
         if not consider:
-            return (original_cov, 1)
+            self.cov = original_cov
+            return
         min_values = []
         max_values = []
         cov = []
@@ -122,7 +123,7 @@ class Gaussian(NDimensionalDistribution):
             max_values.append(dimension.max_value)
             mean = self.mean.dimensions[dimension]
             sigma = self.sigma.dimensions[dimension]
-            value = min([dimension.max_value - mean, mean - dimension.min_value, sigma]) / 2
+            value = min([dimension.max_value - mean, mean - dimension.min_value, sigma]) / 3
             cov.append(value**2)
         cov = np.asarray(cov)
         mean = self.mean.to_array()
@@ -130,8 +131,9 @@ class Gaussian(NDimensionalDistribution):
             multivariate_normal.cdf(min_values, mean, np.diagflat(original_cov), allow_singular = True)
         new_probability = multivariate_normal.cdf(max_values, mean, np.diagflat(cov), allow_singular = True) - \
             multivariate_normal.cdf(min_values, mean, np.diagflat(cov), allow_singular = True)
-        bounded_factor = original_probability / new_probability
-        return (cov, bounded_factor)
+        self.rejection_rate = 1 - new_probability
+        # self.bound_factor = original_probability / new_probability
+        self.cov = cov
 
     """
     Calculates the rejection rate of each of the gaussians in batches
@@ -180,6 +182,6 @@ class Gaussian(NDimensionalDistribution):
         for location in locations:
             samples.append(location.to_array())
         pdf = multivariate_normal.pdf(samples, mean, variance, allow_singular = True)
-        pdf = (pdf * self.biased_weight) * (1 - self.rejection_rate) * self.bounded_factor
+        pdf = (pdf * self.biased_weight) * (1 - self.rejection_rate)
         for index, location in enumerate(locations):
             location.properties['q_pdf'] = location.properties.get('q_pdf', 0) + pdf[index]
