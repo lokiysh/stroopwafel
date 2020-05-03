@@ -123,7 +123,7 @@ class Gaussian(NDimensionalDistribution):
             max_values.append(dimension.max_value)
             mean = self.mean.dimensions[dimension]
             sigma = self.sigma.dimensions[dimension]
-            value = min([dimension.max_value - mean, mean - dimension.min_value, sigma]) / 3
+            value = min([dimension.max_value - mean, mean - dimension.min_value, sigma]) / 2
             cov.append(value**2)
         cov = np.asarray(cov)
         mean = self.mean.to_array()
@@ -132,7 +132,7 @@ class Gaussian(NDimensionalDistribution):
         new_probability = multivariate_normal.cdf(max_values, mean, np.diagflat(cov), allow_singular = True) - \
             multivariate_normal.cdf(min_values, mean, np.diagflat(cov), allow_singular = True)
         self.rejection_rate = 1 - new_probability
-        # self.bound_factor = original_probability / new_probability
+        self.bound_factor = original_probability / new_probability
         self.cov = cov
 
     """
@@ -182,6 +182,6 @@ class Gaussian(NDimensionalDistribution):
         for location in locations:
             samples.append(location.to_array())
         pdf = multivariate_normal.pdf(samples, mean, variance, allow_singular = True)
-        pdf = (pdf * self.biased_weight) * (1 - self.rejection_rate)
+        pdf = (pdf * self.biased_weight) * (1 - self.rejection_rate) * self.bound_factor
         for index, location in enumerate(locations):
             location.properties['q_pdf'] = location.properties.get('q_pdf', 0) + pdf[index]
