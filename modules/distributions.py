@@ -112,9 +112,6 @@ class Gaussian(NDimensionalDistribution):
     """
     def __bound_factor(self, consider = True):
         original_cov = np.power(np.asarray(self.sigma.to_array()), 2)
-        if not consider:
-            self.cov = original_cov
-            return
         min_values = []
         max_values = []
         cov = []
@@ -131,9 +128,14 @@ class Gaussian(NDimensionalDistribution):
             multivariate_normal.cdf(min_values, mean, np.diagflat(original_cov), allow_singular = True)
         new_probability = multivariate_normal.cdf(max_values, mean, np.diagflat(cov), allow_singular = True) - \
             multivariate_normal.cdf(min_values, mean, np.diagflat(cov), allow_singular = True)
-        self.rejection_rate = 1 - new_probability
-        self.bound_factor = original_probability / new_probability
-        self.cov = cov
+        if not consider:
+            self.rejection_rate = 1 - original_probability
+            self.bound_factor = 1
+            self.cov = original_cov
+        else:
+            self.rejection_rate = 1 - new_probability
+            self.bound_factor = original_probability / new_probability
+            self.cov = cov
 
     """
     Calculates the rejection rate of each of the gaussians in batches
