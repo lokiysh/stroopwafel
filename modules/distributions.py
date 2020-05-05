@@ -119,6 +119,7 @@ class Gaussian(NDimensionalDistribution):
             value = min([dimension.max_value - mean, mean - dimension.min_value]) / 2
             if sigma < value:
                 value = sigma
+            self.sigma.dimensions[dimension] = value
             cov.append(value**2)
         cov = np.asarray(cov)
         if not consider:
