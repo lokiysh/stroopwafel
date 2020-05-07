@@ -82,11 +82,11 @@ class Stroopwafel:
         """
         for batch in batches:
             if batch['process']:
-                batch['process'].wait()
+                returncode = batch['process'].wait()
             hits = 0
-            if self.interesting_systems_method != None:
+            if self.interesting_systems_method != None and returncode >= 0:
                 hits = self.interesting_systems_method(batch)
-            if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems:
+            if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems or returncode < 0:
                 #This batch is not needed anymore, delete the folder
                 shutil.rmtree(self.output_folder + '/batch_' + str(batch['number']))
                 self.batch_num = self.batch_num - 1
