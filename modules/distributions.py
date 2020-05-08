@@ -174,6 +174,6 @@ class Gaussian(NDimensionalDistribution):
         for location in locations:
             samples.append(location.to_array())
         pdf = multivariate_normal.pdf(samples, mean, variance, allow_singular = True)
-        pdf = (pdf * self.biased_weight) * (1 - self.rejection_rate)
+        pdf = (pdf * self.biased_weight) / (1 - self.rejection_rate)
         for index, location in enumerate(locations):
             location.properties['q_pdf'] = location.properties.get('q_pdf', 0) + pdf[index]
