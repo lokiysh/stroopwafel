@@ -152,14 +152,15 @@ class Stroopwafel:
             dimensions (List(Dimension)) : The dimension list of variables
             n_dimensional_distribution_type(NDimensionalDistribution) : This tells stroopwafel what kind of distribution is to be adapted for refinment phase
         """
-        if self.num_hits > 0:
-            hits = read_samples(self.output_filename, dimensions, only_hits = True)
-            [location.transform_variables_to_new_scales() for location in hits]
-            average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(dimensions))
-            self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim)
-            n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
-            print_distributions(self.output_folder + '/distributions.csv', self.adapted_distributions)
-        print ("Adaptation phase finished!")
+        if self.num_explored != self.total_num_systems:
+            if self.num_hits > 0:
+                hits = read_samples(self.output_filename, dimensions, only_hits = True)
+                [location.transform_variables_to_new_scales() for location in hits]
+                average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(dimensions))
+                self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim)
+                n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
+                print_distributions(self.output_folder + '/distributions.csv', self.adapted_distributions)
+            print ("Adaptation phase finished!")
                 
     def refine(self):
         """
