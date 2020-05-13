@@ -193,7 +193,7 @@ def print_logs(output_folder, log_string, log_value):
         file.write("%s = %f\n"%(log_string, log_value))
 
 def get_zams_radius(mass, metallicity):
-    metallicity_xi = np.log10(metallicity)
+    metallicity_xi = np.log10(metallicity / ZSOL)
     radius_coefficients = []
     for coeff in R_COEFF:
         value = 1
