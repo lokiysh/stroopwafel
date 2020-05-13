@@ -138,18 +138,14 @@ class Gaussian(NDimensionalDistribution):
     """
     @classmethod
     def calculate_rejection_rate(self, gaussians, num_batches, output_folder, debug, run_on_helios):
-        dimension_ranges = []
-        for dimension in sorted(gaussians[0].mean.dimensions.keys(), key = lambda d: d.name):
-            dimension_ranges.append([dimension.min_value, dimension.max_value])
         batch_num = 0
         batches = []
         for index, gaussian in enumerate(gaussians):
             current_batch = dict()
             current_batch['batch_num'] = "gauss_" + str(batch_num)
             param = dict()
-            param["mean"] = gaussian.mean.to_array()
-            param["cov"] = gaussian.cov.tolist()
-            param["dimension_ranges"] = dimension_ranges
+            param['filename'] = output_folder + '/distributions.csv'
+            param['number'] = index
             command = ["python " + os.getcwd() + "/modules/find_rejection_rate.py '" + json.dumps(param) + "'"]
             current_batch['process'] = run_code(command, current_batch['batch_num'], output_folder, debug, run_on_helios)
             current_batch['gaussian'] = gaussian
