@@ -106,7 +106,6 @@ def interesting_systems(batch):
         system_parameters = pd.read_csv(folder + '/BSE_System_Parameters.csv', skiprows = 2)
         system_parameters.rename(columns = lambda x: x.strip(), inplace = True)
         seeds = system_parameters['SEED']
-        num_rejected = np.sum(system_parameters['Merger_At_Birth']) or 0
         for index, sample in enumerate(batch['samples']):
             seed = seeds[index]
             sample.properties['SEED'] = seed
@@ -115,14 +114,15 @@ def interesting_systems(batch):
         double_compact_objects = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
         double_compact_objects.rename(columns = lambda x: x.strip(), inplace = True)
         #Generally, this is the line you would want to change.
-        dns = double_compact_objects[np.logical_and(double_compact_objects['Merges_Hubble_Time'] == 1, np.logical_and(double_compact_objects['Stellar_Type_1'] == 13, double_compact_objects['Stellar_Type_2'] == 13))]
+        dns = double_compact_objects[np.logical_and(double_compact_objects['Stellar_Type_1'] == 13, double_compact_objects['Stellar_Type_2'] == 13)]
         interesting_systems_seeds = set(dns['SEED'])
         for sample in batch['samples']:
             if sample.properties['SEED'] in interesting_systems_seeds:
                 sample.properties['is_hit'] = 1
-        return (len(dns), num_rejected)
+        return len(dns)
     except IOError as error:
-        return (0, num_rejected)
+        print (error)
+        return 0
 
 def selection_effects(sw):
     """

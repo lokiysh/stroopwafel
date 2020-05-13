@@ -64,11 +64,9 @@ class Stroopwafel:
         fraction_explored = self.num_explored / self.total_num_systems
         for distribution in self.adapted_distributions:
             distribution.calculate_probability_of_locations_from_distribution(locations)
-        pi_norm = 1.0 / (1 - self.num_rejected_exploratory / self.num_explored)
-        q_norm = 1.0 / (1 - self.num_rejected_refinement / (self.total_num_systems - self.num_explored))
         for location in locations:
-            prior_pdf = location.calculate_prior_probability() * pi_norm
-            q_pdf = location.properties.pop('q_pdf') * q_norm / len(self.adapted_distributions)
+            prior_pdf = location.calculate_prior_probability()
+            q_pdf = location.properties.pop('q_pdf') / len(self.adapted_distributions)
             Q = (fraction_explored * prior_pdf) + ((1 - fraction_explored) * q_pdf)
             location.properties['mixture_weight'] = prior_pdf / Q
             weights.append(location.properties['mixture_weight'])
@@ -87,7 +85,7 @@ class Stroopwafel:
                 returncode = batch['process'].wait()
             hits = 0
             if self.interesting_systems_method != None and returncode >= 0:
-                (hits, rejected) = self.interesting_systems_method(batch)
+                hits = self.interesting_systems_method(batch)
             if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems or returncode < 0:
                 #This batch is not needed anymore, delete the folder
                 shutil.rmtree(self.output_folder + '/batch_' + str(batch['number']))
@@ -100,10 +98,8 @@ class Stroopwafel:
             if is_exploration_phase:
                 self.num_explored += self.num_samples_per_batch
                 self.update_fraction_explored()
-                self.num_rejected_exploratory += rejected
             else:
                 self.num_to_be_refined -= self.num_samples_per_batch
-                self.num_rejected_refinement += rejected
 
     def initialize(self, interesting_systems_method, configure_code_run, update_properties_method = None):
         """
@@ -121,8 +117,6 @@ class Stroopwafel:
         self.finished = 0
         self.num_hits = 0
         self.fraction_explored = 1
-        self.num_rejected_refinement = 0
-        self.num_rejected_exploratory = 0
         printProgressBar(0, self.total_num_systems, prefix = 'progress', suffix = 'complete', length = 20)
 
     def explore(self, intial_pdf):
