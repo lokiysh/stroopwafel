@@ -44,12 +44,14 @@ class Stroopwafel:
         """
         if len(locations) == 0:
             return (0, 0)
-        phi = np.zeros(len(locations))
-        for index, location in enumerate(locations):
+        non_rejected_locations = []
+        [non_rejected_locations.append(location) for location in locations if location.properties['is_rejected'] == 0]
+        phi = np.zeros(len(non_rejected_locations))
+        for index, location in enumerate(non_rejected_locations):
             if location.properties['is_hit'] == 1:
                 phi[index] = location.properties['mixture_weight']
-        stroopwafel_rate = np.sum(phi) / self.total_num_systems
-        uncertainity = np.std(phi, ddof = 1) / np.sqrt(self.total_num_systems)
+        stroopwafel_rate = np.sum(phi) / len(non_rejected_locations)
+        uncertainity = np.std(phi, ddof = 1) / np.sqrt(len(non_rejected_locations))
         return (np.round(stroopwafel_rate, 6), np.round(uncertainity, 6))
 
     def calculate_mixture_weights(self, locations):
@@ -64,7 +66,11 @@ class Stroopwafel:
         fraction_explored = self.num_explored / self.total_num_systems
         for distribution in self.adapted_distributions:
             distribution.calculate_probability_of_locations_from_distribution(locations)
-        pi_norm = 1.0 / (1 - self.num_rejected / self.num_explored)
+        num_exploration_rejected = 0
+        for location in locations[:self.num_explored]:
+            if location.properties['is_rejected'] == 1:
+                num_exploration_rejected += 1
+        pi_norm = 1.0 / (1 - num_exploration_rejected / self.num_explored)
         for location in locations:
             prior_pdf = location.calculate_prior_probability() * pi_norm
             q_pdf = location.properties.pop('q_pdf') / len(self.adapted_distributions)
@@ -202,16 +208,16 @@ class Stroopwafel:
             dimensions (List(Dimension)) : The dimension list of variables
             only_hits (Boolean) : If you want to print only the hits
         """
+        locations = read_samples(self.output_filename, dimensions, only_hits)
+        [location.properties.update({'is_rejected': 0, 'mixture_weight': 1}) for location in locations]
+        self.num_rejected = self.rejected_systems_method(locations, dimensions)
         if self.num_explored != self.total_num_systems:
-            locations = read_samples(self.output_filename, dimensions, only_hits)
-            [location.properties.update({'is_rejected': 0}) for location in locations]
-            self.num_rejected = self.rejected_systems_method(locations[: self.num_explored], dimensions)
             [location.transform_variables_to_new_scales() for location in locations]
             weights = self.calculate_mixture_weights(locations)
             [location.revert_variables_to_original_scales() for location in locations]
-            print_samples(locations, self.output_filename, 'w')
-            (stroopwafel_rate, uncertainity) = self.determine_rate(locations)
-            print ("Rate of hits = %f with uncertainity = %f" %(stroopwafel_rate, uncertainity))
-            print_logs(self.output_folder, "rate_of_hits", stroopwafel_rate)
-            print_logs(self.output_folder, "uncertainity", uncertainity)
+        print_samples(locations, self.output_filename, 'w')
+        (stroopwafel_rate, uncertainity) = self.determine_rate(locations)
+        print ("Rate of hits = %f with uncertainity = %f" %(stroopwafel_rate, uncertainity))
+        print_logs(self.output_folder, "rate_of_hits", stroopwafel_rate)
+        print_logs(self.output_folder, "uncertainity", uncertainity)
         
