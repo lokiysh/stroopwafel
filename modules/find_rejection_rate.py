@@ -8,7 +8,7 @@ from distributions import Gaussian
 from classes import Location
 import os
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
-from interface import create_dimensions
+from interface import create_dimensions, rejected_systems
 import csv
 
 def read_distribution(filename, distribution_number):
@@ -30,5 +30,9 @@ if __name__ == '__main__':
         params = json.loads(sys.argv[1])
         distribution = read_distribution(params['filename'], params['number'])
         num_samples = int(1e6)
-        (locations, mask) = distribution.run_sampler(num_samples)
-        print(1 - np.sum(mask) / num_samples)
+        (locations, mask) = distribution.run_sampler(num_samples, dimensions)
+        total_rejected = num_samples - np.sum(mask)
+        locations_to_examine = np.asarray(locations)[mask]
+        [location.revert_variables_to_original_scales() for location in locations_to_examine]
+        total_rejected += rejected_systems(locations_to_examine, dimensions)
+        print (total_rejected / num_samples)

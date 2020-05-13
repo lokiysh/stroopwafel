@@ -75,7 +75,7 @@ class Gaussian(NDimensionalDistribution):
         OUT:
             (list(Location), list(bool)) : A pair of lists (both of size num_samples), the first describing the samples drawn, and the second telling which of the samples are within the bounds of the respective variables
         """
-    def run_sampler(self, num_samples, consider_rejection_rate = False):
+    def run_sampler(self, num_samples, dimensions, consider_rejection_rate = False):
         if consider_rejection_rate == True:
             if self.rejection_rate == 1:
                 return ([], [])
@@ -83,7 +83,7 @@ class Gaussian(NDimensionalDistribution):
         num_samples = int(num_samples * self.biased_weight)
         mask = np.ones(num_samples, dtype = bool)
         current_samples = multivariate_normal.rvs(mean = self.mean.to_array(), cov = self.cov, size = num_samples)
-        headers = sorted(self.mean.dimensions.keys(), key = lambda d: d.name)
+        headers = sorted(dimensions, key = lambda d: d.name)
         for index, dimension in enumerate(headers):
             mask &= dimension.is_sample_within_bounds(current_samples[:, index])
         locations = [Location(dict(zip(headers, row)), {}) for row in current_samples]

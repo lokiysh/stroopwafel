@@ -43,7 +43,7 @@ def update_properties(locations):
     q = dimensions[1]
     for location in locations:
         location.properties['Mass_2'] = location.dimensions[m1] * location.dimensions[q]
-        location.properties['Metallicity_2'] = location.properties['Metallicity_1'] = 0.0142
+        location.properties['Metallicity_2'] = location.properties['Metallicity_1'] = constants.METALLICITY_SOL
         location.properties['Eccentricity'] = 0
         #location.properties['Kick_Mean_Anomaly_1'] = np.random.uniform(0, 2 * np.pi, 1)[0]
         #location.properties['Kick_Mean_Anomaly_2'] = np.random.uniform(0, 2 * np.pi, 1)[0]
@@ -121,6 +121,30 @@ def selection_effects(sw):
         for index, distribution in enumerate(sw.adapted_distributions):
             distribution.biased_weight = np.power(max(rows[index]), 2.2) / mean
 
+def rejected_systems(locations, dimensions):
+    """
+    This method takes a list of locations and marks the systems which can be
+    rejected by the prior distribution
+    IN:
+        locations (List(Location)): list of location to inspect and mark rejected
+    OUT:
+        num_rejected (int): number of systems which can be rejected
+    """
+    m1 = dimensions[0]
+    q = dimensions[1]
+    a = dimensions[2]
+    [location.properties.update({'Mass_2': location.dimensions[m1] * location.dimensions[q]}) for location in locations]
+    mass_1 = [location.dimensions[m1] for location in locations]
+    mass_2 = [location.properties['Mass_2'] for location in locations]
+    radius_1 = utils.get_zams_radius(mass_1, constants.METALLICITY_SOL)
+    radius_2 = utils.get_zams_radius(mass_2, constants.METALLICITY_SOL)
+    num_rejected = 0
+    for index, location in enumerate(locations):
+        if (mass_2[index] < constants.MINIMUM_SECONDARY_MASS) or (location.dimensions[a] <= (radius_1[index] + radius_2[index])):
+            location.properties['is_rejected'] = 1
+            num_rejected += 1
+    return num_rejected
+
 if __name__ == '__main__':
     start_time = time.time()
     #Define the parameters to the constructor of stroopwafel
@@ -149,7 +173,7 @@ if __name__ == '__main__':
 
     #STEP 3: Initialize the stroopwafel object with the user defined functions and create dimensions and initial distribution
     dimensions = create_dimensions()
-    sw.initialize(interesting_systems, configure_code_run, update_properties_method = update_properties)
+    sw.initialize(interesting_systems, configure_code_run, rejected_systems, update_properties_method = update_properties)
 
     intial_pdf = distributions.InitialDistribution(dimensions)
     #STEP 4: Run the 4 phases of stroopwafel
@@ -157,7 +181,7 @@ if __name__ == '__main__':
     sw.adapt(dimensions, n_dimensional_distribution_type = distributions.Gaussian) #Adaptaion phase, tell stroopwafel what kind of distribution you would like to create instrumental distributions
     ## Do selection effects
     #selection_effects(sw)
-    sw.refine() #Stroopwafel will draw samples from the adapted distributions
+    sw.refine(dimensions) #Stroopwafel will draw samples from the adapted distributions
     sw.postprocess(dimensions, only_hits = False) #Run it to create weights, if you want only hits in the output, then make only_hits = True
 
     end_time = time.time()

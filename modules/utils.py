@@ -3,6 +3,7 @@ import os
 import subprocess
 import csv
 import classes
+from constants import *
 
 def generate_grid(locations, filename):
     """
@@ -190,3 +191,23 @@ def print_distributions(filename, distributions):
 def print_logs(output_folder, log_string, log_value):
     with open(output_folder + '/log.txt', 'a') as file:
         file.write("%s = %f\n"%(log_string, log_value))
+
+def get_zams_radius(mass, metallicity):
+    metallicity_xi = np.log10(metallicity)
+    radius_coefficients = []
+    for coeff in R_COEFF:
+        value = 1
+        total = 0
+        for series in coeff:
+            total += series * value
+            value *= metallicity_xi
+        radius_coefficients.append(total)
+    radius_coefficients = np.asarray(radius_coefficients)
+    top = radius_coefficients[0] * np.power(mass, 2.5) + radius_coefficients[1] * np.power(mass, 6.5) \
+        + radius_coefficients[2] * np.power(mass, 11) + radius_coefficients[3] * np.power(mass, 19) \
+        + radius_coefficients[4] * np.power(mass, 19.5)
+    bottom = radius_coefficients[5] + radius_coefficients[6] * np.power(mass, 2) \
+        + radius_coefficients[7] * np.power(mass, 8.5) + np.power(mass, 18.5) \
+        + radius_coefficients[8] * np.power(mass, 19.5)
+    radius = top / bottom
+    return radius * R_SOL_TO_AU

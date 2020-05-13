@@ -64,8 +64,9 @@ class Stroopwafel:
         fraction_explored = self.num_explored / self.total_num_systems
         for distribution in self.adapted_distributions:
             distribution.calculate_probability_of_locations_from_distribution(locations)
+        pi_norm = 1.0 / (1 - self.num_rejected / self.num_explored)
         for location in locations:
-            prior_pdf = location.calculate_prior_probability()
+            prior_pdf = location.calculate_prior_probability() * pi_norm
             q_pdf = location.properties.pop('q_pdf') / len(self.adapted_distributions)
             Q = (fraction_explored * prior_pdf) + ((1 - fraction_explored) * q_pdf)
             location.properties['mixture_weight'] = prior_pdf / Q
@@ -101,7 +102,7 @@ class Stroopwafel:
             else:
                 self.num_to_be_refined -= self.num_samples_per_batch
 
-    def initialize(self, interesting_systems_method, configure_code_run, update_properties_method = None):
+    def initialize(self, interesting_systems_method, configure_code_run, rejected_systems_method, update_properties_method = None):
         """
         This function is the one which is run only once in the stroopwafel class. It initializes the associated variables and the function calls that user will specify
         IN:
@@ -112,6 +113,7 @@ class Stroopwafel:
         self.interesting_systems_method = interesting_systems_method
         self.update_properties_method = update_properties_method
         self.configure_code_run = configure_code_run
+        self.rejected_systems_method = rejected_systems_method
         self.batch_num = 0
         self.num_explored = 0
         self.finished = 0
@@ -162,7 +164,7 @@ class Stroopwafel:
                 n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
             print ("Adaptation phase finished!")
                 
-    def refine(self):
+    def refine(self, dimensions):
         """
         Refinement phase of stroopwafel
         """
@@ -174,7 +176,7 @@ class Stroopwafel:
                 current_batch['number'] = self.batch_num
                 locations_ref = []
                 for distribution in self.adapted_distributions:
-                    (locations, mask) = distribution.run_sampler(self.num_samples_per_batch, True)
+                    (locations, mask) = distribution.run_sampler(self.num_samples_per_batch, dimensions, True)
                     locations_ref.extend(np.asarray(locations)[mask])
                 np.random.shuffle(locations_ref)
                 locations_ref = locations_ref[0 : self.num_samples_per_batch]
@@ -202,6 +204,8 @@ class Stroopwafel:
         """
         if self.num_explored != self.total_num_systems:
             locations = read_samples(self.output_filename, dimensions, only_hits)
+            [location.properties.update({'is_rejected': 0}) for location in locations]
+            self.num_rejected = self.rejected_systems_method(locations[: self.num_explored], dimensions)
             [location.transform_variables_to_new_scales() for location in locations]
             weights = self.calculate_mixture_weights(locations)
             [location.revert_variables_to_original_scales() for location in locations]
