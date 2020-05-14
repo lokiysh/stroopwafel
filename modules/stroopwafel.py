@@ -63,8 +63,8 @@ class Stroopwafel:
         non_rejected_locations = [location for location in locations if location.properties['is_rejected'] == 0]
         for distribution in self.adapted_distributions:
             distribution.calculate_probability_of_locations_from_distribution(non_rejected_locations)
-        pi_norm = 1.0 / (1 - self.num_exploration_rejected / self.num_explored)
-        fraction_explored = (self.num_explored - self.num_exploration_rejected) / len(non_rejected_locations)
+        pi_norm = 1.0 / (1 - self.num_rejected_exploratory / self.num_explored)
+        fraction_explored = (self.num_explored - self.num_rejected_exploratory) / len(non_rejected_locations)
         for location in non_rejected_locations:
             prior_pdf = location.calculate_prior_probability() * pi_norm
             q_pdf = location.properties.pop('q_pdf') / len(self.adapted_distributions)
