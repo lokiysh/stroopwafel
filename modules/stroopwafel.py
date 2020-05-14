@@ -44,8 +44,11 @@ class Stroopwafel:
         """
         if len(locations) == 0:
             return (0, 0)
-        non_rejected_locations = []
-        [non_rejected_locations.append(location) for location in locations if location.properties['is_rejected'] == 0]
+        if self.num_explored == self.total_num_systems:
+            non_rejected_locations = locations
+        else:
+            non_rejected_locations = []
+            [non_rejected_locations.append(location) for location in locations if location.properties['is_rejected'] == 0]
         phi = np.zeros(len(non_rejected_locations))
         for index, location in enumerate(non_rejected_locations):
             if location.properties['is_hit'] == 1:
