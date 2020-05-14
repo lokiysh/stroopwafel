@@ -32,7 +32,7 @@ if __name__ == '__main__':
         num_samples = int(1e6)
         (locations, mask) = distribution.run_sampler(num_samples, dimensions)
         total_rejected = num_samples - np.sum(mask)
-        locations_to_examine = np.asarray(locations)[mask]
-        [location.revert_variables_to_original_scales() for location in locations_to_examine]
-        total_rejected += rejected_systems(locations_to_examine, dimensions)
+        locations = np.asarray(locations)[mask]
+        [location.revert_variables_to_original_scales() for location in locations]
+        total_rejected += rejected_systems(locations, dimensions)
         print (total_rejected / num_samples)
