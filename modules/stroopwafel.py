@@ -59,10 +59,7 @@ class Stroopwafel:
         Function that will calculate the mixture weights of all the locations provided
         IN:
             locations (list(Location)) : All the locations for which weight needs to be computed
-        OUT:
-            weights (list(float)) : A list of computed weights
         """
-        weights = []
         fraction_explored = self.num_explored / self.total_num_systems
         for distribution in self.adapted_distributions:
             distribution.calculate_probability_of_locations_from_distribution(locations)
@@ -76,9 +73,6 @@ class Stroopwafel:
             q_pdf = location.properties.pop('q_pdf') / len(self.adapted_distributions)
             Q = (fraction_explored * prior_pdf) + ((1 - fraction_explored) * q_pdf)
             location.properties['mixture_weight'] = prior_pdf / Q
-            weights.append(location.properties['mixture_weight'])
-
-        return weights
 
     def process_batches(self, batches, is_exploration_phase):
         """
@@ -213,11 +207,12 @@ class Stroopwafel:
         self.num_rejected = self.rejected_systems_method(locations, dimensions)
         if self.num_explored != self.total_num_systems:
             [location.transform_variables_to_new_scales() for location in locations]
-            weights = self.calculate_mixture_weights(locations)
+            self.calculate_mixture_weights(locations)
             [location.revert_variables_to_original_scales() for location in locations]
         print_samples(locations, self.output_filename, 'w')
         (stroopwafel_rate, uncertainity) = self.determine_rate(locations)
         print ("Rate of hits = %f with uncertainity = %f" %(stroopwafel_rate, uncertainity))
+        print_logs(self.output_folder, "num_samples_rejected", self.num_rejected)
         print_logs(self.output_folder, "rate_of_hits", stroopwafel_rate)
         print_logs(self.output_folder, "uncertainity", uncertainity)
         
