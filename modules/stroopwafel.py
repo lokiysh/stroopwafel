@@ -42,13 +42,10 @@ class Stroopwafel:
         OUT:
             (float, float): A pair of values which has the rate of stroopwafel rate and the uncertainity in the rate
         """
-        if len(locations) == 0:
-            return (0, 0)
         if self.num_explored == self.total_num_systems:
             non_rejected_locations = locations
         else:
-            non_rejected_locations = []
-            [non_rejected_locations.append(location) for location in locations if location.properties['is_rejected'] == 0]
+            non_rejected_locations = [location for location in locations if location.properties['is_rejected'] == 0]
         phi = np.zeros(len(non_rejected_locations))
         for index, location in enumerate(non_rejected_locations):
             if location.properties['is_hit'] == 1:
@@ -63,15 +60,12 @@ class Stroopwafel:
         IN:
             locations (list(Location)) : All the locations for which weight needs to be computed
         """
-        fraction_explored = self.num_explored / self.total_num_systems
+        non_rejected_locations = [location for location in locations if location.properties['is_rejected'] == 0]
         for distribution in self.adapted_distributions:
-            distribution.calculate_probability_of_locations_from_distribution(locations)
-        num_exploration_rejected = 0
-        for location in locations[:self.num_explored]:
-            if location.properties['is_rejected'] == 1:
-                num_exploration_rejected += 1
-        pi_norm = 1.0 / (1 - num_exploration_rejected / self.num_explored)
-        for location in locations:
+            distribution.calculate_probability_of_locations_from_distribution(non_rejected_locations)
+        pi_norm = 1.0 / (1 - self.num_exploration_rejected / self.num_explored)
+        fraction_explored = (self.num_explored - self.num_exploration_rejected) / len(non_rejected_locations)
+        for location in non_rejected_locations:
             prior_pdf = location.calculate_prior_probability() * pi_norm
             q_pdf = location.properties.pop('q_pdf') / len(self.adapted_distributions)
             Q = (fraction_explored * prior_pdf) + ((1 - fraction_explored) * q_pdf)
@@ -208,6 +202,12 @@ class Stroopwafel:
         locations = read_samples(self.output_filename, dimensions, only_hits)
         [location.properties.update({'is_rejected': 0, 'mixture_weight': 1}) for location in locations]
         self.num_rejected = self.rejected_systems_method(locations, dimensions)
+        self.num_rejected_exploratory = 0
+        for index, location in enumerate(locations):
+            if location.properties['is_rejected'] == 1:
+                location.properties['mixture_weight'] = 0
+                if index < self.num_explored:
+                    self.num_rejected_exploratory += 1
         if self.num_explored != self.total_num_systems:
             [location.transform_variables_to_new_scales() for location in locations]
             self.calculate_mixture_weights(locations)
