@@ -18,8 +18,8 @@ class Stroopwafel:
         """
         Function which updates the fraction of region which is already explored
         """
-        unidentified_region_weight = 1.0 / (self.fraction_explored * (self.total_num_systems - self.num_rejected))
-        target_rate = float(self.num_hits) / (self.num_explored - self.num_rejected)
+        unidentified_region_weight = 1.0 / (self.fraction_explored * self.total_num_systems)
+        target_rate = float(self.num_hits) / self.num_explored
         numerator = target_rate * (np.sqrt(1. - target_rate) - np.sqrt(unidentified_region_weight))
         denominator = np.sqrt(1. - target_rate) * (np.sqrt(unidentified_region_weight * (1. - target_rate)) + target_rate)
         self.fraction_explored = 1 - numerator / denominator
@@ -32,7 +32,7 @@ class Stroopwafel:
         """
         if self.mc_only:
             return self.num_explored < self.total_num_systems
-        return (self.num_explored - self.num_rejected) / (self.total_num_systems - self.num_rejected) < self.fraction_explored
+        return self.num_explored / self.total_num_systems < self.fraction_explored
 
     def determine_rate(self, locations):
         """
@@ -42,13 +42,12 @@ class Stroopwafel:
         OUT:
             (float, float): A pair of values which has the rate of stroopwafel rate and the uncertainity in the rate
         """
-        non_rejected_locations = [location for location in locations if location.properties['is_rejected'] == 0]
-        phi = np.zeros(len(non_rejected_locations))
-        for index, location in enumerate(non_rejected_locations):
+        phi = np.zeros(len(locations))
+        for index, location in enumerate(locations):
             if location.properties['is_hit'] == 1:
                 phi[index] = location.properties['mixture_weight']
-        stroopwafel_rate = np.sum(phi) / len(non_rejected_locations)
-        uncertainity = np.std(phi, ddof = 1) / np.sqrt(len(non_rejected_locations))
+        stroopwafel_rate = np.sum(phi) / len(locations)
+        uncertainity = np.std(phi, ddof = 1) / np.sqrt(len(locations))
         return (np.round(stroopwafel_rate, 6), np.round(uncertainity, 6))
 
     def calculate_mixture_weights(self, locations):
@@ -57,19 +56,24 @@ class Stroopwafel:
         IN:
             locations (list(Location)) : All the locations for which weight needs to be computed
         """
-        [location.properties.update({'mixture_weight': 1 - location.properties['is_rejected']}) for location in locations]
+        [location.properties.update({'mixture_weight': 1}) for location in locations]
         if self.num_explored == self.total_num_systems:
             return
-        non_rejected_locations = [location for location in locations if location.properties['is_rejected'] == 0]
         for distribution in self.adapted_distributions:
-            distribution.calculate_probability_of_locations_from_distribution(non_rejected_locations)
-        pi_norm = 1.0 / (1 - self.num_rejected_exploratory / self.num_explored)
-        fraction_explored = (self.num_explored - self.num_rejected_exploratory) / len(non_rejected_locations)
-        for location in non_rejected_locations:
+            distribution.calculate_probability_of_locations_from_distribution(locations)
+        pi_norm = 1.0 / (1 - self.prior_fraction_rejected)
+        fraction_explored = self.num_explored / self.total_num_systems
+        for location in locations:
             prior_pdf = location.calculate_prior_probability() * pi_norm
             q_pdf = location.properties.pop('q_pdf') / len(self.adapted_distributions)
             Q = (fraction_explored * prior_pdf) + ((1 - fraction_explored) * q_pdf)
             location.properties['mixture_weight'] = prior_pdf / Q
+
+    def calculate_prior_rejected_fraction(self, intial_pdf):
+        num_samples = self.total_num_systems
+        (locations, mask) = intial_pdf.run_sampler(num_samples)
+        num_rejected = self.rejected_systems_method(locations, self.dimensions)
+        self.prior_fraction_rejected = num_rejected / num_samples
 
     def process_batches(self, batches, is_exploration_phase):
         """
@@ -82,23 +86,19 @@ class Stroopwafel:
             if batch['process']:
                 returncode = batch['process'].wait()
             hits = 0
-            rejected = 0
             if returncode >= 0:
                 hits = self.interesting_systems_method(batch)
-                rejected = self.rejected_systems_method(batch['samples'], self.dimensions)
             if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems or returncode < 0:
                 #This batch is not needed anymore, delete the folder
                 shutil.rmtree(self.output_folder + '/batch_' + str(batch['number']))
                 self.batch_num = self.batch_num - 1
                 continue
             self.num_hits += hits
-            self.num_rejected += rejected
             print_samples(batch['samples'], self.output_filename, 'a')
             self.finished += self.num_samples_per_batch
             printProgressBar(self.finished, self.total_num_systems, prefix = 'progress', suffix = 'complete', length = 20)
             if is_exploration_phase:
                 self.num_explored += self.num_samples_per_batch
-                self.num_rejected_exploratory += rejected
                 self.update_fraction_explored()
             else:
                 self.num_to_be_refined -= self.num_samples_per_batch
@@ -121,8 +121,6 @@ class Stroopwafel:
         self.finished = 0
         self.num_hits = 0
         self.fraction_explored = 1
-        self.num_rejected = 0
-        self.num_rejected_exploratory = 0
         printProgressBar(0, self.total_num_systems, prefix = 'progress', suffix = 'complete', length = 20)
 
     def explore(self, intial_pdf):
@@ -131,14 +129,21 @@ class Stroopwafel:
         IN:
             initial_pdf (NDimensionalDistribution) : An instance of NDimensionalDistribution showing how to sample from in the exploration phase
         """
+        self.calculate_prior_rejected_fraction(intial_pdf)
         while self.should_continue_exploring():
             batches = []
             for batch in range(self.num_batches_in_parallel):
                 current_batch = dict()
                 current_batch['number'] = self.batch_num
-                (locations, mask) = intial_pdf.run_sampler(self.num_samples_per_batch)
-                current_batch['samples'] = locations
+                num_samples = int(2 * np.ceil(self.num_samples_per_batch / (1 - self.prior_fraction_rejected)))
+                (locations, mask) = intial_pdf.run_sampler(num_samples)
                 [location.revert_variables_to_original_scales() for location in locations]
+                self.rejected_systems_method(locations, self.dimensions)
+                locations[:] = [location for location in locations if location.properties['is_rejected'] == 0]
+                np.random.shuffle(locations)
+                locations = locations[:self.num_samples_per_batch]
+                [location.properties.pop('is_rejected') for location in locations]
+                current_batch['samples'] = locations
                 if self.update_properties_method != None:
                     self.update_properties_method(locations)
                 command = self.configure_code_run(current_batch)
@@ -178,13 +183,17 @@ class Stroopwafel:
                 current_batch = dict()
                 current_batch['number'] = self.batch_num
                 locations_ref = []
+                num_samples = int(2 * np.ceil(self.num_samples_per_batch / (1 - self.prior_fraction_rejected)))
                 for distribution in self.adapted_distributions:
-                    (locations, mask) = distribution.run_sampler(self.num_samples_per_batch, self.dimensions, True)
+                    (locations, mask) = distribution.run_sampler(num_samples, self.dimensions, True)
                     locations_ref.extend(np.asarray(locations)[mask])
-                np.random.shuffle(locations_ref)
-                locations_ref = locations_ref[0 : self.num_samples_per_batch]
-                current_batch['samples'] = locations_ref
                 [location.revert_variables_to_original_scales() for location in locations_ref]
+                self.rejected_systems_method(locations_ref, self.dimensions)
+                locations_ref[:] = [location for location in locations_ref if location.properties['is_rejected'] == 0]
+                np.random.shuffle(locations_ref)
+                locations_ref = locations_ref[:self.num_samples_per_batch]
+                [location.properties.pop('is_rejected') for location in locations_ref]
+                current_batch['samples'] = locations_ref
                 if self.update_properties_method != None:
                     self.update_properties_method(locations_ref)
                 command = self.configure_code_run(current_batch)
@@ -211,7 +220,7 @@ class Stroopwafel:
         print_samples(locations, self.output_filename, 'w')
         (stroopwafel_rate, uncertainity) = self.determine_rate(locations)
         print ("Rate of hits = %f with uncertainity = %f" %(stroopwafel_rate, uncertainity))
-        print_logs(self.output_folder, "num_samples_rejected", self.num_rejected)
+        print_logs(self.output_folder, "prior_fraction_rejected", self.prior_fraction_rejected)
         print_logs(self.output_folder, "rate_of_hits", stroopwafel_rate)
         print_logs(self.output_folder, "uncertainity", uncertainity)
         
