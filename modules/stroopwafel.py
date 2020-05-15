@@ -18,8 +18,8 @@ class Stroopwafel:
         """
         Function which updates the fraction of region which is already explored
         """
-        unidentified_region_weight = 1.0 / (self.fraction_explored * self.total_num_systems)
-        target_rate = float(self.num_hits) / self.num_explored
+        unidentified_region_weight = 1.0 / (self.fraction_explored * (self.total_num_systems - self.num_rejected))
+        target_rate = float(self.num_hits) / (self.num_explored - self.num_rejected)
         numerator = target_rate * (np.sqrt(1. - target_rate) - np.sqrt(unidentified_region_weight))
         denominator = np.sqrt(1. - target_rate) * (np.sqrt(unidentified_region_weight * (1. - target_rate)) + target_rate)
         self.fraction_explored = 1 - numerator / denominator
@@ -32,7 +32,7 @@ class Stroopwafel:
         """
         if self.mc_only:
             return self.num_explored < self.total_num_systems
-        return self.num_explored / self.total_num_systems < self.fraction_explored
+        return (self.num_explored - self.num_rejected) / (self.total_num_systems - self.num_rejected) < self.fraction_explored
 
     def determine_rate(self, locations):
         """
