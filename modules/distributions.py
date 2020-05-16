@@ -134,7 +134,9 @@ class Gaussian(NDimensionalDistribution):
     This function is used to vary the width of the gaussian depending on how close it is to the edge of the dimension
     """
     def __bound_factor(self, consider = True):
-        original_cov = np.power(np.asarray(self.sigma.to_array()), 2)
+        self.cov = np.power(np.asarray(self.sigma.to_array()), 2)
+        if not consider:
+            return
         cov = []
         for dimension in sorted(self.mean.dimensions.keys(), key = lambda d: d.name):
             mean = self.mean.dimensions[dimension]
@@ -144,11 +146,7 @@ class Gaussian(NDimensionalDistribution):
                 value = sigma
             self.sigma.dimensions[dimension] = value
             cov.append(value**2)
-        cov = np.asarray(cov)
-        if not consider:
-            self.cov = original_cov
-        else:
-            self.cov = cov
+        self.cov = np.asarray(cov)
 
     """
     Calculates the rejection rate of each of the gaussians in batches
