@@ -72,6 +72,7 @@ class Stroopwafel:
     def calculate_prior_rejected_fraction(self, intial_pdf):
         num_samples = int(1e6)
         (locations, mask) = intial_pdf.run_sampler(num_samples)
+        [location.revert_variables_to_original_scales() for location in locations]
         num_rejected = self.rejected_systems_method(locations, self.dimensions)
         self.prior_fraction_rejected = num_rejected / num_samples
 
