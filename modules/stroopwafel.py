@@ -180,7 +180,7 @@ class Stroopwafel:
         self.num_to_be_refined = self.total_num_systems - self.num_explored
         while self.num_to_be_refined > 0:
             batches = []
-            for batch in range(min(self.num_batches_in_parallel, self.num_to_be_refined / self.num_samples_per_batch)):
+            for batch in range(min(self.num_batches_in_parallel, int(self.num_to_be_refined / self.num_samples_per_batch))):
                 current_batch = dict()
                 current_batch['number'] = self.batch_num
                 locations_ref = []
