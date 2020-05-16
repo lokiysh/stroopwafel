@@ -178,7 +178,7 @@ class Stroopwafel:
                 current_batch = dict()
                 current_batch['number'] = self.batch_num
                 locations_ref = []
-                num_samples = 2 * np.ceil(self.num_samples_per_batch / len(self.adapted_distributions))
+                num_samples = np.ceil(self.num_samples_per_batch / len(self.adapted_distributions))
                 for distribution in self.adapted_distributions:
                     (locations, mask) = distribution.run_sampler(num_samples , self.dimensions, True)
                     locations_ref.extend(np.asarray(locations)[mask])
