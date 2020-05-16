@@ -162,13 +162,14 @@ class Gaussian(NDimensionalDistribution):
     @classmethod
     def calculate_rejection_rate(self, gaussians, num_batches, output_folder, debug, run_on_helios):
         batch_num = 0
+        num_systems = np.zeros(len(gaussians))
+        num_rejected = np.zeros(len(gaussians))
+        batches = []
         for index, gaussian in enumerate(gaussians):
-            num_systems = 0
-            num_rejected = 0
-            batches = []
-            while num_systems < TOTAL_REJECTION_SAMPLES:
+            while num_systems[index] < TOTAL_REJECTION_SAMPLES:
                 current_batch = dict()
                 current_batch['batch_num'] = "gauss_" + str(batch_num)
+                current_batch['number'] = index
                 param = dict()
                 param['filename'] = output_folder + '/distributions.csv'
                 param['number'] = index
@@ -177,13 +178,14 @@ class Gaussian(NDimensionalDistribution):
                 current_batch['process'] = run_code(command, current_batch['batch_num'], output_folder, debug, run_on_helios)
                 batches.append(current_batch)
                 batch_num = batch_num + 1
-                num_systems += REJECTION_SAMPLES_PER_BATCH
-                if len(batches) == num_batches or num_systems >= TOTAL_REJECTION_SAMPLES:
+                num_systems[index] += REJECTION_SAMPLES_PER_BATCH
+                if len(batches) == num_batches or (index == len(gaussians) - 1 and num_systems[index] >= TOTAL_REJECTION_SAMPLES):
                     for batch in batches:
                         batch['process'].wait()
-                        num_rejected += float(get_slurm_output(output_folder, batch['batch_num']))
+                        num_rejected[batch['number']] += float(get_slurm_output(output_folder, batch['batch_num']))
                     batches = []
-            gaussian.rejection_rate = num_rejected / num_systems
+        for index, gaussian in enumerate(gaussians):
+            gaussian.rejection_rate = num_rejected[index] / num_systems[index]
 
     """
     Given a list of locations, calculates the probability of drawing each location from the given gaussian

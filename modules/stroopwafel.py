@@ -124,6 +124,7 @@ class Stroopwafel:
             initial_pdf (NDimensionalDistribution) : An instance of NDimensionalDistribution showing how to sample from in the exploration phase
         """
         self.prior_fraction_rejected = intial_pdf.calculate_rejection_rate(self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
+        print_logs(self.output_folder, "prior_fraction_rejected", self.prior_fraction_rejected)
         while self.should_continue_exploring():
             batches = []
             for batch in range(self.num_batches_in_parallel):
@@ -214,7 +215,6 @@ class Stroopwafel:
         print_samples(locations, self.output_filename, 'w')
         (stroopwafel_rate, uncertainity) = self.determine_rate(locations)
         print ("Rate of hits = %f with uncertainity = %f" %(stroopwafel_rate, uncertainity))
-        print_logs(self.output_folder, "prior_fraction_rejected", self.prior_fraction_rejected)
         print_logs(self.output_folder, "rate_of_hits", stroopwafel_rate)
         print_logs(self.output_folder, "uncertainity", uncertainity)
         
