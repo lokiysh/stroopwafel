@@ -69,17 +69,6 @@ class Stroopwafel:
             Q = (fraction_explored * prior_pdf) + ((1 - fraction_explored) * q_pdf)
             location.properties['mixture_weight'] = prior_pdf / Q
 
-    def calculate_prior_rejected_fraction(self, intial_pdf):
-        total_samples = 0
-        total_rejected = 0
-        for i in range(100):
-            num_samples = int(1e5)
-            (locations, mask) = intial_pdf.run_sampler(num_samples)
-            [location.revert_variables_to_original_scales() for location in locations]
-            total_rejected += self.rejected_systems_method(locations, self.dimensions)
-            total_samples += num_samples
-        self.prior_fraction_rejected = total_rejected / total_samples
-
     def process_batches(self, batches, is_exploration_phase):
         """
         Function that waits for the completion of the commands which were running in batches
@@ -134,7 +123,7 @@ class Stroopwafel:
         IN:
             initial_pdf (NDimensionalDistribution) : An instance of NDimensionalDistribution showing how to sample from in the exploration phase
         """
-        self.calculate_prior_rejected_fraction(intial_pdf)
+        self.prior_fraction_rejected = intial_pdf.calculate_rejection_rate(self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
         while self.should_continue_exploring():
             batches = []
             for batch in range(self.num_batches_in_parallel):

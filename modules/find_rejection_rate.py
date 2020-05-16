@@ -4,8 +4,9 @@ import numpy as np
 import json
 import sys
 from scipy.stats import multivariate_normal
-from distributions import Gaussian
+from distributions import Gaussian, InitialDistribution
 from classes import Location
+from constants import *
 import os
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
 from interface import create_dimensions, rejected_systems
@@ -28,16 +29,15 @@ if __name__ == '__main__':
     if (len(sys.argv) > 1):
         dimensions = create_dimensions()
         params = json.loads(sys.argv[1])
-        distribution = read_distribution(params['filename'], params['number'])
-        total_samples = 0
-        total_rejected = 0
-        for i in range(100):
-            num_samples = int(1e5)
+        num_samples = int(REJECTION_SAMPLES_PER_BATCH)
+        if params['exploration'] == 1:
+            distribution = InitialDistribution(dimensions)
+            (locations, mask) = distribution.run_sampler(num_samples)
+        else:
+            distribution = read_distribution(params['filename'], params['number'])
             (locations, mask) = distribution.run_sampler(num_samples, dimensions)
-            rejected = num_samples - np.sum(mask)
-            locations = np.asarray(locations)[mask]
-            [location.revert_variables_to_original_scales() for location in locations]
-            rejected += rejected_systems(locations, dimensions)
-            total_samples += num_samples
-            total_rejected += rejected
-        print (total_rejected / total_samples)
+        rejected = num_samples - np.sum(mask)
+        locations = np.asarray(locations)[mask]
+        [location.revert_variables_to_original_scales() for location in locations]
+        rejected += rejected_systems(locations, dimensions)
+        print (rejected)

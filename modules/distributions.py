@@ -4,6 +4,7 @@ from classes import Location
 import numpy as np
 from utils import *
 import json
+from constants import *
 
 class NDimensionalDistribution:
     """
@@ -52,6 +53,28 @@ class InitialDistribution(NDimensionalDistribution):
 
     def calculate_probability_of_locations_from_distribution(self, locations):
         pass
+
+    def calculate_rejection_rate(self, num_batches, output_folder, debug, run_on_helios):
+        batch_num = 0
+        num_systems = 0
+        num_rejected = 0
+        batches = []
+        while num_systems < TOTAL_REJECTION_SAMPLES:
+            current_batch = dict()
+            current_batch['batch_num'] = "initial_" + str(batch_num)
+            param = dict()
+            param['exploration'] = 1
+            command = ["python " + os.getcwd() + "/modules/find_rejection_rate.py '" + json.dumps(param) + "'"]
+            current_batch['process'] = run_code(command, current_batch['batch_num'], output_folder, debug, run_on_helios)
+            batches.append(current_batch)
+            batch_num = batch_num + 1
+            num_systems += REJECTION_SAMPLES_PER_BATCH
+            if len(batches) == num_batches or num_systems >= TOTAL_REJECTION_SAMPLES:
+                for batch in batches:
+                    batch['process'].wait()
+                    num_rejected += float(get_slurm_output(output_folder, batch['batch_num']))
+                batches = []
+        return num_rejected / num_systems
 
 class Gaussian(NDimensionalDistribution):
     """
@@ -139,23 +162,28 @@ class Gaussian(NDimensionalDistribution):
     @classmethod
     def calculate_rejection_rate(self, gaussians, num_batches, output_folder, debug, run_on_helios):
         batch_num = 0
-        batches = []
         for index, gaussian in enumerate(gaussians):
-            current_batch = dict()
-            current_batch['batch_num'] = "gauss_" + str(batch_num)
-            param = dict()
-            param['filename'] = output_folder + '/distributions.csv'
-            param['number'] = index
-            command = ["python " + os.getcwd() + "/modules/find_rejection_rate.py '" + json.dumps(param) + "'"]
-            current_batch['process'] = run_code(command, current_batch['batch_num'], output_folder, debug, run_on_helios)
-            current_batch['gaussian'] = gaussian
-            batches.append(current_batch)
-            batch_num = batch_num + 1
-            if len(batches) == num_batches or index == len(gaussians) - 1:
-                for batch in batches:
-                    batch['process'].wait()
-                    batch['gaussian'].rejection_rate = float(get_slurm_output(output_folder, batch['batch_num']))
-                batches = []
+            num_systems = 0
+            num_rejected = 0
+            batches = []
+            while num_systems < TOTAL_REJECTION_SAMPLES:
+                current_batch = dict()
+                current_batch['batch_num'] = "gauss_" + str(batch_num)
+                param = dict()
+                param['filename'] = output_folder + '/distributions.csv'
+                param['number'] = index
+                param['exploration'] = 0
+                command = ["python " + os.getcwd() + "/modules/find_rejection_rate.py '" + json.dumps(param) + "'"]
+                current_batch['process'] = run_code(command, current_batch['batch_num'], output_folder, debug, run_on_helios)
+                batches.append(current_batch)
+                batch_num = batch_num + 1
+                num_systems += REJECTION_SAMPLES_PER_BATCH
+                if len(batches) == num_batches or num_systems >= TOTAL_REJECTION_SAMPLES:
+                    for batch in batches:
+                        batch['process'].wait()
+                        num_rejected += float(get_slurm_output(output_folder, batch['batch_num']))
+                    batches = []
+            gaussian.rejection_rate = num_rejected / num_systems
 
     """
     Given a list of locations, calculates the probability of drawing each location from the given gaussian
