@@ -184,9 +184,9 @@ class Stroopwafel:
                 current_batch = dict()
                 current_batch['number'] = self.batch_num
                 locations_ref = []
-                num_samples = int(2 * np.ceil(self.num_samples_per_batch / (1 - self.prior_fraction_rejected)))
+                num_samples = 2 * np.ceil(self.num_samples_per_batch / len(self.adapted_distributions))
                 for distribution in self.adapted_distributions:
-                    (locations, mask) = distribution.run_sampler(num_samples, self.dimensions, True)
+                    (locations, mask) = distribution.run_sampler(num_samples , self.dimensions, True)
                     locations_ref.extend(np.asarray(locations)[mask])
                 [location.revert_variables_to_original_scales() for location in locations_ref]
                 self.rejected_systems_method(locations_ref, self.dimensions)
