@@ -29,10 +29,15 @@ if __name__ == '__main__':
         dimensions = create_dimensions()
         params = json.loads(sys.argv[1])
         distribution = read_distribution(params['filename'], params['number'])
-        num_samples = int(1e6)
-        (locations, mask) = distribution.run_sampler(num_samples, dimensions)
-        total_rejected = num_samples - np.sum(mask)
-        locations = np.asarray(locations)[mask]
-        [location.revert_variables_to_original_scales() for location in locations]
-        total_rejected += rejected_systems(locations, dimensions)
-        print (total_rejected / num_samples)
+        total_samples = 0
+        total_rejected = 0
+        for i in range(100):
+            num_samples = int(1e5)
+            (locations, mask) = distribution.run_sampler(num_samples, dimensions)
+            rejected = num_samples - np.sum(mask)
+            locations = np.asarray(locations)[mask]
+            [location.revert_variables_to_original_scales() for location in locations]
+            rejected += rejected_systems(locations, dimensions)
+            total_samples += num_samples
+            total_rejected += rejected
+        print (total_rejected / total_samples)

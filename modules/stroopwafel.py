@@ -70,11 +70,15 @@ class Stroopwafel:
             location.properties['mixture_weight'] = prior_pdf / Q
 
     def calculate_prior_rejected_fraction(self, intial_pdf):
-        num_samples = int(1e6)
-        (locations, mask) = intial_pdf.run_sampler(num_samples)
-        [location.revert_variables_to_original_scales() for location in locations]
-        num_rejected = self.rejected_systems_method(locations, self.dimensions)
-        self.prior_fraction_rejected = num_rejected / num_samples
+        total_samples = 0
+        total_rejected = 0
+        for i in range(100):
+            num_samples = int(1e5)
+            (locations, mask) = intial_pdf.run_sampler(num_samples)
+            [location.revert_variables_to_original_scales() for location in locations]
+            total_rejected += self.rejected_systems_method(locations, self.dimensions)
+            total_samples += num_samples
+        self.prior_fraction_rejected = total_rejected / total_samples
 
     def process_batches(self, batches, is_exploration_phase):
         """
