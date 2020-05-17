@@ -133,14 +133,14 @@ class Stroopwafel:
                 num_samples = int(2 * np.ceil(self.num_samples_per_batch / (1 - self.prior_fraction_rejected)))
                 (locations, mask) = intial_pdf.run_sampler(num_samples)
                 [location.revert_variables_to_original_scales() for location in locations]
+                if self.update_properties_method != None:
+                    self.update_properties_method(locations, self.dimensions)
                 self.rejected_systems_method(locations, self.dimensions)
                 locations[:] = [location for location in locations if location.properties['is_rejected'] == 0]
                 np.random.shuffle(locations)
                 locations = locations[:self.num_samples_per_batch]
                 [location.properties.pop('is_rejected') for location in locations]
                 current_batch['samples'] = locations
-                if self.update_properties_method != None:
-                    self.update_properties_method(locations)
                 command = self.configure_code_run(current_batch)
                 generate_grid(locations, current_batch['grid_filename'])
                 current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)
@@ -183,14 +183,14 @@ class Stroopwafel:
                     (locations, mask) = distribution.run_sampler(num_samples , self.dimensions, True)
                     locations_ref.extend(np.asarray(locations)[mask])
                 [location.revert_variables_to_original_scales() for location in locations_ref]
+                if self.update_properties_method != None:
+                    self.update_properties_method(locations_ref, self.dimensions)
                 self.rejected_systems_method(locations_ref, self.dimensions)
                 locations_ref[:] = [location for location in locations_ref if location.properties['is_rejected'] == 0]
                 np.random.shuffle(locations_ref)
                 locations_ref = locations_ref[:self.num_samples_per_batch]
                 [location.properties.pop('is_rejected') for location in locations_ref]
                 current_batch['samples'] = locations_ref
-                if self.update_properties_method != None:
-                    self.update_properties_method(locations_ref)
                 command = self.configure_code_run(current_batch)
                 generate_grid(locations_ref, current_batch['grid_filename'])
                 current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)

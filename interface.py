@@ -29,7 +29,7 @@ def create_dimensions():
     #return [m1, q, a, kick_velocity_random_1, kick_theta_1, kick_phi_1, kick_velocity_random_2, kick_theta_2, kick_phi_2]
     return [m1, q, a]
 
-def update_properties(locations):
+def update_properties(locations, dimensions):
     """
     This function is not mandatory, it is required only if you have some dependent variable. 
     For example, if you want to sample Mass_1 and q, then Mass_2 is a dependent variable which is product of the two.
@@ -134,15 +134,16 @@ def rejected_systems(locations, dimensions):
     m1 = dimensions[0]
     q = dimensions[1]
     a = dimensions[2]
-    [location.properties.update({'Mass_2': location.dimensions[m1] * location.dimensions[q]}) for location in locations]
     mass_1 = [location.dimensions[m1] for location in locations]
     mass_2 = [location.properties['Mass_2'] for location in locations]
-    radius_1 = utils.get_zams_radius(mass_1, constants.METALLICITY_SOL)
-    radius_2 = utils.get_zams_radius(mass_2, constants.METALLICITY_SOL)
+    metallicity_1 = [location.properties['Metallicity_1'] for location in locations]
+    metallicity_2 = [location.properties['Metallicity_2'] for location in locations]
     num_rejected = 0
     for index, location in enumerate(locations):
+        radius_1 = utils.get_zams_radius(mass_1[index], metallicity_1[index])
+        radius_2 = utils.get_zams_radius(mass_2[index], metallicity_2[index])
         location.properties['is_rejected'] = 0
-        if (mass_2[index] < constants.MINIMUM_SECONDARY_MASS) or (location.dimensions[a] <= (radius_1[index] + radius_2[index])):
+        if (mass_2[index] < constants.MINIMUM_SECONDARY_MASS) or (location.dimensions[a] <= (radius_1 + radius_2)):
             location.properties['is_rejected'] = 1
             num_rejected += 1
     return num_rejected

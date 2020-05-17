@@ -9,7 +9,7 @@ from classes import Location
 from constants import *
 import os
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
-from interface import create_dimensions, rejected_systems
+from interface import create_dimensions, rejected_systems, update_properties
 import csv
 
 def read_distribution(filename, distribution_number):
@@ -39,5 +39,6 @@ if __name__ == '__main__':
         rejected = num_samples - np.sum(mask)
         locations = np.asarray(locations)[mask]
         [location.revert_variables_to_original_scales() for location in locations]
+        update_properties(locations, dimensions)
         rejected += rejected_systems(locations, dimensions)
         print (rejected)
