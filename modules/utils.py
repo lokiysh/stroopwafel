@@ -4,6 +4,7 @@ import subprocess
 import csv
 import classes
 from constants import *
+import math
 
 def generate_grid(locations, filename):
     """
@@ -194,7 +195,7 @@ def print_logs(output_folder, log_string, log_value):
         file.write("%s = %f\n"%(log_string, log_value))
 
 def get_zams_radius(mass, metallicity):
-    metallicity_xi = np.log10(metallicity / ZSOL)
+    metallicity_xi = math.log10(metallicity / ZSOL)
     radius_coefficients = []
     for coeff in R_COEFF:
         value = 1
@@ -203,12 +204,15 @@ def get_zams_radius(mass, metallicity):
             total += series * value
             value *= metallicity_xi
         radius_coefficients.append(total)
-    radius_coefficients = np.asarray(radius_coefficients)
-    top = radius_coefficients[0] * np.power(mass, 2.5) + radius_coefficients[1] * np.power(mass, 6.5) \
-        + radius_coefficients[2] * np.power(mass, 11) + radius_coefficients[3] * np.power(mass, 19) \
-        + radius_coefficients[4] * np.power(mass, 19.5)
-    bottom = radius_coefficients[5] + radius_coefficients[6] * np.power(mass, 2) \
-        + radius_coefficients[7] * np.power(mass, 8.5) + np.power(mass, 18.5) \
-        + radius_coefficients[8] * np.power(mass, 19.5)
+    top = radius_coefficients[0] * pow(mass, 2.5) + radius_coefficients[1] * pow(mass, 6.5) \
+        + radius_coefficients[2] * pow(mass, 11) + radius_coefficients[3] * pow(mass, 19) \
+        + radius_coefficients[4] * pow(mass, 19.5)
+    bottom = radius_coefficients[5] + radius_coefficients[6] * pow(mass, 2) \
+        + radius_coefficients[7] * pow(mass, 8.5) + pow(mass, 18.5) \
+        + radius_coefficients[8] * pow(mass, 19.5)
     radius = top / bottom
     return radius * R_SOL_TO_AU
+
+def calculate_roche_lobe_radius(mass1, mass2):
+    q = mass1 / mass2
+    return 0.49 / (0.6 + pow(q, -2.0 / 3.0) * math.log(1.0 + pow(q, 1.0 / 3.0)));

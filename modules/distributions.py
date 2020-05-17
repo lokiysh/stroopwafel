@@ -59,7 +59,7 @@ class InitialDistribution(NDimensionalDistribution):
         num_systems = 0
         num_rejected = 0
         batches = []
-        while num_systems < TOTAL_REJECTION_SAMPLES * 100:
+        while num_systems < TOTAL_REJECTION_SAMPLES * 10:
             current_batch = dict()
             current_batch['batch_num'] = "initial_" + str(batch_num)
             param = dict()
@@ -69,7 +69,7 @@ class InitialDistribution(NDimensionalDistribution):
             batches.append(current_batch)
             batch_num = batch_num + 1
             num_systems += REJECTION_SAMPLES_PER_BATCH
-            if len(batches) == num_batches or num_systems >= TOTAL_REJECTION_SAMPLES * 100:
+            if len(batches) == num_batches or num_systems >= TOTAL_REJECTION_SAMPLES * 10:
                 for batch in batches:
                     batch['process'].wait()
                     num_rejected += float(get_slurm_output(output_folder, batch['batch_num']))
