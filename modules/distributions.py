@@ -5,6 +5,7 @@ import numpy as np
 from utils import *
 import json
 from constants import *
+import sampler as sp
 
 class NDimensionalDistribution:
     """
@@ -126,7 +127,7 @@ class Gaussian(NDimensionalDistribution):
         for hit in hit_locations:
             sigma = dict()
             for variable, val in hit.dimensions.items():
-                sigma[variable] = average_density_one_dim / variable.prior(variable, val)
+                sigma[variable] = self.__calculate_sigma(average_density_one_dim, variable, val)
             gaussians.append(Gaussian(hit, Location(sigma, {})))
         return gaussians
 
@@ -147,6 +148,18 @@ class Gaussian(NDimensionalDistribution):
             self.sigma.dimensions[dimension] = value
             cov.append(value**2)
         self.cov = np.asarray(cov)
+
+    @classmethod
+    def __calculate_sigma(self, average_density_one_dim, dimension, value):
+        if dimension.sampler.__name__ == sp.kroupa.__name__:
+            norm_factor = (ALPHA_IMF + 1) / (pow(dimension.max_value, ALPHA_IMF + 1) - pow(dimension.min_value, ALPHA_IMF + 1))
+            inverse_value = (pow(norm_factor / value, 1 / -ALPHA_IMF) - pow(norm_factor / dimension.min_value, 1 / -ALPHA_IMF)) / \
+            (pow(norm_factor / dimension.max_value, 1 / -ALPHA_IMF) - pow(norm_factor / dimension.min_value, 1 / -ALPHA_IMF))
+            right_distance = abs(inverse_back(dimension, inverse_value + average_density_one_dim) - value)
+            left_distance = abs(inverse_back(dimension, inverse_value - average_density_one_dim) - value)
+            return max(right_distance, left_distance)
+        else:
+            return average_density_one_dim / dimension.prior(dimension, value)
 
     """
     Calculates the rejection rate of each of the gaussians in batches

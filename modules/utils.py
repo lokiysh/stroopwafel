@@ -215,4 +215,10 @@ def get_zams_radius(mass, metallicity):
 
 def calculate_roche_lobe_radius(mass1, mass2):
     q = mass1 / mass2
-    return 0.49 / (0.6 + pow(q, -2.0 / 3.0) * math.log(1.0 + pow(q, 1.0 / 3.0)));
+    return 0.49 / (0.6 + pow(q, -2.0 / 3.0) * math.log(1.0 + pow(q, 1.0 / 3.0)))
+
+def inverse_back(dimension, inverse):
+    norm_factor = (ALPHA_IMF + 1) / (pow(dimension.max_value, ALPHA_IMF + 1) - pow(dimension.min_value, ALPHA_IMF + 1))
+    return norm_factor / pow(inverse * (pow(norm_factor / dimension.max_value, 1 / -ALPHA_IMF) \
+        - pow(norm_factor / dimension.min_value, 1 / -ALPHA_IMF)) \
+        + pow(norm_factor / dimension.min_value, 1 / -ALPHA_IMF), -ALPHA_IMF)
