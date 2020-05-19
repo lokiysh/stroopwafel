@@ -88,7 +88,7 @@ class Gaussian(NDimensionalDistribution):
         self.mean = mean
         self.sigma = sigma
         self.kappa = kappa
-        self.__bound_factor(False)
+        self.__bound_factor(True)
         self.rejection_rate = 0
         self.biased_weight = 1
     """
@@ -157,7 +157,6 @@ class Gaussian(NDimensionalDistribution):
             (pow(norm_factor / dimension.max_value, 1 / -ALPHA_IMF) - pow(norm_factor / dimension.min_value, 1 / -ALPHA_IMF))
             right_distance = abs(inverse_back(dimension, inverse_value + average_density_one_dim) - value)
             left_distance = abs(inverse_back(dimension, inverse_value - average_density_one_dim) - value)
-            print (average_density_one_dim, value, max(right_distance, left_distance))
             return max(right_distance, left_distance)
         else:
             return average_density_one_dim / dimension.prior(dimension, value)
