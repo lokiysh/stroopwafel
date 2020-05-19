@@ -213,7 +213,7 @@ class Gaussian(NDimensionalDistribution):
         samples = []
         for location in locations:
             samples.append(location.to_array())
-        pdf = multivariate_normal.pdf(samples, mean, variance)
+        pdf = multivariate_normal.pdf(samples, mean, variance, allow_singular = True)
         pdf = pdf * self.biased_weight
         for index, location in enumerate(locations):
             location.properties['q_pdf'] += pdf[index]
