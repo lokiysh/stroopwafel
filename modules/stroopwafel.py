@@ -59,14 +59,16 @@ class Stroopwafel:
         [location.properties.update({'mixture_weight': 1}) for location in locations]
         if self.num_explored == self.total_num_systems:
             return
+        [location.properties.update({'q_pdf': 0}) for location in locations]
         for distribution in self.adapted_distributions:
             distribution.calculate_probability_of_locations_from_distribution(locations)
         pi_norm = 1.0 / (1 - self.prior_fraction_rejected)
+        q_norm = 1.0 / (1 - self.distribution_rejection_rate)
         fraction_explored = self.num_explored / self.total_num_systems
         for location in locations:
             prior_pdf = location.calculate_prior_probability() * pi_norm
             q_pdf = location.properties.pop('q_pdf') / len(self.adapted_distributions)
-            Q = (fraction_explored * prior_pdf) + ((1 - fraction_explored) * q_pdf)
+            Q = (fraction_explored * prior_pdf) + ((1 - fraction_explored) * q_pdf * q_norm)
             location.properties['mixture_weight'] = prior_pdf / Q
 
     def process_batches(self, batches, is_exploration_phase):
@@ -164,7 +166,7 @@ class Stroopwafel:
                 average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(self.dimensions))
                 self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim)
                 print_distributions(self.output_folder + '/distributions.csv', self.adapted_distributions)
-                n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
+                self.distribution_rejection_rate = n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
             print ("Adaptation phase finished!")
                 
     def refine(self):

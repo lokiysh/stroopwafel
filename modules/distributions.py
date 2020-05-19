@@ -195,8 +195,11 @@ class Gaussian(NDimensionalDistribution):
                         batch['process'].wait()
                         num_rejected[batch['number']] += float(get_slurm_output(output_folder, batch['batch_num']))
                     batches = []
+        (total_rejected, total_sampled) = (0, 0)
         for index, gaussian in enumerate(gaussians):
-            gaussian.rejection_rate = num_rejected[index] / num_systems[index]
+            rej += num_rejected[index]
+            tot += num_systems[index]
+        return total_rejected / total_sampled
 
     """
     Given a list of locations, calculates the probability of drawing each location from the given gaussian
@@ -210,7 +213,7 @@ class Gaussian(NDimensionalDistribution):
         samples = []
         for location in locations:
             samples.append(location.to_array())
-        pdf = multivariate_normal.pdf(samples, mean, variance, allow_singular = True)
+        pdf = multivariate_normal.pdf(samples, mean, variance)
         pdf = (pdf * self.biased_weight) / (1 - self.rejection_rate)
         for index, location in enumerate(locations):
-            location.properties['q_pdf'] = location.properties.get('q_pdf', 0) + pdf[index]
+            location.properties['q_pdf'] += pdf[index]
