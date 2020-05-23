@@ -162,7 +162,8 @@ def get_slurm_output(output_folder, batch_num):
         log_folder = os.path.join(output_folder, 'logs')
         log_file = log_folder + "/log_" + str(batch_num) + ".txt"
         with open(log_file) as f:
-            return f.readline()
+            return_list = [float(line.rstrip()) for line in f]
+            return return_list
     except:
         pass
 

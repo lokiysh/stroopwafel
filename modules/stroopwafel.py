@@ -50,7 +50,7 @@ class Stroopwafel:
         uncertainity = np.std(phi, ddof = 1) / np.sqrt(len(locations))
         return (np.round(stroopwafel_rate, 6), np.round(uncertainity, 6))
 
-    def calculate_mixture_weights(self, locations):
+    def calculate_mixture_weights(self, n_dimensional_distribution_type, locations):
         """
         Function that will calculate the mixture weights of all the locations provided
         IN:
@@ -60,8 +60,7 @@ class Stroopwafel:
         if self.num_explored == self.total_num_systems:
             return
         [location.properties.update({'q_pdf': 0}) for location in locations]
-        for distribution in self.adapted_distributions:
-            distribution.calculate_probability_of_locations_from_distribution(locations)
+        n_dimensional_distribution_type.calculate_probability_of_locations_from_distribution(locations, self.adapted_distributions, self.num_batches_in_parallel, self.output_folder, self.output_filename, self.debug, self.run_on_helios)
         pi_norm = 1.0 / (1 - self.prior_fraction_rejected)
         q_norm = 1.0 / (1 - self.distribution_rejection_rate)
         fraction_explored = self.num_explored / self.total_num_systems
@@ -204,7 +203,7 @@ class Stroopwafel:
             print_logs(self.output_folder, "total_num_systems", self.num_explored + num_refined)
             print ("\nRefinement phase finished, found %d hits out of %d tried. Rate = %.6f" %(self.num_hits - len(self.adapted_distributions), num_refined, (self.num_hits - len(self.adapted_distributions)) / num_refined))
 
-    def postprocess(self, only_hits = False):
+    def postprocess(self, n_dimensional_distribution_type, only_hits = False):
         """
         Postprocessing phase of stroopwafel
         IN:
@@ -212,7 +211,7 @@ class Stroopwafel:
         """
         locations = read_samples(self.output_filename, self.dimensions, only_hits)
         [location.transform_variables_to_new_scales() for location in locations]
-        self.calculate_mixture_weights(locations)
+        self.calculate_mixture_weights(n_dimensional_distribution_type, locations)
         [location.revert_variables_to_original_scales() for location in locations]
         print_samples(locations, self.output_filename, 'w')
         (stroopwafel_rate, uncertainity) = self.determine_rate(locations)

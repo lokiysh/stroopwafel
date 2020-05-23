@@ -73,7 +73,7 @@ class InitialDistribution(NDimensionalDistribution):
             if len(batches) == num_batches or num_systems >= TOTAL_REJECTION_SAMPLES * 10:
                 for batch in batches:
                     batch['process'].wait()
-                    num_rejected += float(get_slurm_output(output_folder, batch['batch_num']))
+                    num_rejected += get_slurm_output(output_folder, batch['batch_num'])[0]
                 batches = []
         return num_rejected / num_systems
 
@@ -193,7 +193,7 @@ class Gaussian(NDimensionalDistribution):
                 if len(batches) == num_batches or (index == len(gaussians) - 1 and num_systems[index] >= TOTAL_REJECTION_SAMPLES):
                     for batch in batches:
                         batch['process'].wait()
-                        num_rejected[batch['number']] += float(get_slurm_output(output_folder, batch['batch_num']))
+                        num_rejected[batch['number']] += get_slurm_output(output_folder, batch['batch_num'])[0]
                     batches = []
         (total_rejected, total_sampled) = (0, 0)
         for index, gaussian in enumerate(gaussians):
@@ -206,14 +206,23 @@ class Gaussian(NDimensionalDistribution):
     IN:
         locations (list(Location)) : list of locations
     """
-    @abstractmethod
-    def calculate_probability_of_locations_from_distribution(self, locations):
-        mean = self.mean.to_array()
-        variance = np.diagflat(self.cov)
-        samples = []
-        for location in locations:
-            samples.append(location.to_array())
-        pdf = multivariate_normal.pdf(samples, mean, variance, allow_singular = True)
-        pdf = pdf * self.biased_weight
-        for index, location in enumerate(locations):
-            location.properties['q_pdf'] += pdf[index]
+    @classmethod
+    def calculate_probability_of_locations_from_distribution(self, locations, gaussians, num_batches, output_folder, output_filename, debug, run_on_helios):
+        batch_num = 0
+        batches = []
+        for index, gaussian in enumerate(gaussians):
+            current_batch = dict()
+            current_batch['batch_num'] = "post_process_" + str(batch_num)
+            current_batch['number'] = index
+            current_batch['distribution_filename'] = output_folder + '/distributions.csv'
+            current_batch['output_filename'] = os.path.join(output_folder, output_filename)
+            command = ["python " + os.getcwd() + "/modules/find_probability_of_locations_from_distribution.py '" + json.dumps(current_batch) + "'"]
+            current_batch['process'] = run_code(command, current_batch['batch_num'], output_folder, debug, run_on_helios)
+            batches.append(current_batch)
+            batch_num = batch_num + 1
+            if len(batches) == num_batches or index == len(gaussians) - 1:
+                for batch in batches:
+                    batch['process'].wait()
+                    pdf = get_slurm_output(output_folder, batch['batch_num'])
+                    for index, location in enumerate(locations):
+                        location.properties['q_pdf'] += pdf[index]
