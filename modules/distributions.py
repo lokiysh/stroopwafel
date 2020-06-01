@@ -88,7 +88,7 @@ class Gaussian(NDimensionalDistribution):
         self.mean = mean
         self.sigma = sigma
         self.kappa = kappa
-        self.__bound_factor(True)
+        self.__bound_factor(False)
         self.rejection_rate = 0
         self.biased_weight = 1
     """
@@ -114,7 +114,7 @@ class Gaussian(NDimensionalDistribution):
         return (locations, mask)
 
     @classmethod
-    def draw_distributions(self, hit_locations, average_density_one_dim):
+    def draw_distributions(self, hit_locations, average_density_one_dim, kappa = 1):
         """
         Function that draws gaussians at the hits
         IN:
@@ -128,14 +128,14 @@ class Gaussian(NDimensionalDistribution):
             sigma = dict()
             for variable, val in hit.dimensions.items():
                 sigma[variable] = self.__calculate_sigma(average_density_one_dim, variable, val)
-            gaussians.append(Gaussian(hit, Location(sigma, {})))
+            gaussians.append(Gaussian(hit, Location(sigma, {}), kappa))
         return gaussians
 
     """
     This function is used to vary the width of the gaussian depending on how close it is to the edge of the dimension
     """
     def __bound_factor(self, consider = True):
-        self.cov = np.power(np.asarray(self.sigma.to_array()), 2)
+        self.cov = np.diagflat(np.power(np.asarray(self.sigma.to_array()), 2))
         if not consider:
             return
         cov = []

@@ -30,7 +30,7 @@ if __name__ == '__main__':
         params = json.loads(sys.argv[1])
         distribution = read_distribution(params['distribution_filename'], params['number'])
         mean = distribution.mean.to_array()
-        variance = np.diagflat(distribution.cov)
+        variance = distribution.cov
         locations = read_samples(params['output_filename'], dimensions)
         [location.transform_variables_to_new_scales() for location in locations]
         samples = []
