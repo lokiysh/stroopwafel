@@ -166,6 +166,7 @@ class Stroopwafel:
                 self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim)
                 print_distributions(self.output_folder + '/distributions.csv', self.adapted_distributions)
                 self.distribution_rejection_rate = n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
+                print_logs(self.output_folder, "distribution_rejection_rate", self.distribution_rejection_rate)
             print ("Adaptation phase finished!")
                 
     def refine(self):
