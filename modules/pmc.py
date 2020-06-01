@@ -1,7 +1,7 @@
 import os
 from utils import *
 import shutil
-from scipy.stats import multivariate_normal
+from scipy.stats import multivariate_normal, entropy
 
 class Pmc:
 
@@ -114,8 +114,10 @@ class Pmc:
         """
         self.num_hits = 0
         self.finished = 0
+        update_distributions = True
         for generation in range(NUM_GENERATIONS):
             samples = []
+            entropies = []
             self.distribution_rejection_rate = self.calculate_rejection_rate()
             self.num_samples_per_generation = int(self.total_num_systems / NUM_GENERATIONS)
             while self.num_samples_per_generation > 0:
@@ -146,7 +148,11 @@ class Pmc:
                 self.process_batches(batches, False)
             if self.finished >= self.total_num_systems:
                 break
-            self.calculate_weights_and_readjust_gaussians(samples)
+            if update_distributions:
+                entropy = self.calculate_weights_and_readjust_gaussians(samples)
+                if len(entropies) > 0 and (entropy - entropies[-1]) < MAX_ENTROPY_CHANGE:
+                    update_distributions = False
+                entropies.append(entropy)
         print ("\nRefinement phase finished, found %d hits out of %d tried. Rate = %.6f" %(self.num_hits, self.total_num_systems, self.num_hits / self.total_num_systems))
 
     def process_batches(self, batches, is_exploration_phase):
@@ -221,6 +227,7 @@ class Pmc:
             for i, dimension in enumerate(sorted(distribution.mean.dimensions.keys(), key = lambda d: d.name)):
                 distribution.mean.dimensions[dimension] = mu[index][i]
             distribution.cov = sigma[index]
+        return np.exp(entropy(weights_normalized)) / num_samples
 
     def calculate_rejection_rate(self):
         num_rejected = 0
