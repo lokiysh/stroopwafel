@@ -116,7 +116,7 @@ class Pmc:
         self.finished = 0
         for generation in range(NUM_GENERATIONS):
             samples = []
-            self.distribution_rejection_rate = n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
+            self.distribution_rejection_rate = self.calculate_rejection_rate()
             self.num_samples_per_generation = int(self.total_num_systems / NUM_GENERATIONS)
             while self.num_samples_per_generation > 0:
                 batches = []
@@ -222,3 +222,14 @@ class Pmc:
                 distribution.mean.dimensions[dimension] = mu[index][i]
             distribution.cov = sigma[index]
 
+    def calculate_rejection_rate(self):
+        num_rejected = 0
+        N_GAUSS = 10000
+        for distribution in self.adapted_distributions:
+            mask = np.ones(N_GAUSS)
+            samples = multivariate_normal.rvs(mean = distribution.mean.to_array(), cov = distribution.cov, size = N_GAUSS)
+            samples = samples.T
+            for index, dimension in enumerate(self.dimensions):
+                mask = (mask == 1) & (samples[index] >= dimension.min_value) & (samples[index] <= dimension.max_value)
+            num_rejected += N_GAUSS - np.sum(mask)
+        return num_rejected / (N_GAUSS * len(self.adapted_distributions))
