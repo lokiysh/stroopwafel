@@ -11,6 +11,7 @@ class Pmc:
         self.num_samples_per_batch = num_samples_per_batch
         self.output_folder = output_folder
         self.output_filename = os.path.join(self.output_folder, output_filename)
+        self.exploratory_filename = os.path.join(self.output_folder, 'exploratory_samples.csv')
         self.debug = debug
         self.run_on_helios = run_on_helios
         self.mc_only = mc_only
@@ -87,6 +88,8 @@ class Pmc:
             self.process_batches(batches, True)
         print ("\nExploratory phase finished, found %d hits out of %d explored. Rate = %.6f (fexpl = %.4f)" %(self.num_hits, self.num_explored, self.num_hits / self.num_explored, self.fraction_explored))
         print_logs(self.output_folder, "num_explored", self.num_explored)
+        if self.mc_only:
+            exit()
 
     def adapt(self, n_dimensional_distribution_type):
         """
@@ -94,15 +97,16 @@ class Pmc:
         IN:
             n_dimensional_distribution_type(NDimensionalDistribution) : This tells stroopwafel what kind of distribution is to be adapted for refinment phase
         """
-        if not self.mc_only:
-            if self.num_hits > 0:
-                hits = read_samples(self.output_filename, self.dimensions, only_hits = True)
-                [location.transform_variables_to_new_scales() for location in hits]
-                average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(self.dimensions))
-                self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim, kappa = 5)
-                print_distributions(self.output_folder + '/distributions.csv', self.adapted_distributions)
-                self.alpha = np.ones(len(self.adapted_distributions)) / len(self.adapted_distributions)
-            print ("Adaptation phase finished!")
+        if self.num_hits == 0:
+            print ("No hits in the exploration phase\n")
+            exit()
+        hits = read_samples(self.exploratory_filename, self.dimensions, only_hits = True)
+        [location.transform_variables_to_new_scales() for location in hits]
+        average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(self.dimensions))
+        self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim, kappa = 5)
+        print_distributions(self.output_folder + '/distributions.csv', self.adapted_distributions)
+        self.alpha = np.ones(len(self.adapted_distributions)) / len(self.adapted_distributions)
+        print ("Adaptation phase finished!")
 
     def refine(self, n_dimensional_distribution_type):
         """
@@ -110,14 +114,13 @@ class Pmc:
         """
         self.num_hits = 0
         self.finished = 0
-        open(self.output_filename, 'w').close()
         for generation in range(NUM_GENERATIONS):
             samples = []
             self.distribution_rejection_rate = n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
-            self.num_samples_per_generation = self.total_num_systems / NUM_GENERATIONS
+            self.num_samples_per_generation = int(self.total_num_systems / NUM_GENERATIONS)
             while self.num_samples_per_generation > 0:
                 batches = []
-                for batch in range(min(self.num_batches_in_parallel, int(self.num_samples_per_generation / self.num_samples_per_batch))):
+                for batch in range(min(self.num_batches_in_parallel, int(np.ceil(self.num_samples_per_generation / self.num_samples_per_batch)))):
                     current_batch = dict()
                     current_batch['number'] = self.batch_num
                     locations_ref = []
@@ -141,6 +144,8 @@ class Pmc:
                     batches.append(current_batch)
                     self.batch_num = self.batch_num + 1
                 self.process_batches(batches, False)
+            if self.finished >= self.total_num_systems:
+                break
             self.calculate_weights_and_readjust_gaussians(samples)
         print ("\nRefinement phase finished, found %d hits out of %d tried. Rate = %.6f" %(self.num_hits, self.total_num_systems, self.num_hits / self.total_num_systems))
 
@@ -163,19 +168,17 @@ class Pmc:
                 self.batch_num = self.batch_num - 1
                 continue
             self.num_hits += hits
-            print_samples(batch['samples'], self.output_filename, 'a')
             self.finished += self.num_samples_per_batch
             if is_exploration_phase:
                 self.num_explored += self.num_samples_per_batch
                 self.update_fraction_explored()
+                print_samples(batch['samples'], self.exploratory_filename, 'a')
             else:
                 self.num_samples_per_generation -= self.num_samples_per_batch
+                print_samples(batch['samples'], self.output_filename, 'a')
             printProgressBar(self.finished, self.total_num_systems, prefix = 'progress', suffix = 'complete', length = 20)
 
     def calculate_weights_and_readjust_gaussians(self, locations):
-        [location.properties.update({'mixture_weight': 1}) for location in locations]
-        if self.mc_only:
-            return
         [location.transform_variables_to_new_scales() for location in locations]
         pi_norm = 1.0 / (1 - self.prior_fraction_rejected)
         q_norm = 1.0 / (1 - self.distribution_rejection_rate)
