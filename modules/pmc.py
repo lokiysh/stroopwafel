@@ -225,7 +225,7 @@ class Pmc:
             distance = np.asarray(mu[i] - samples)[:, :, None]
             matrix = np.einsum('nij,nji->nij', distance, distance)
             factor = weights_normalized[:, 0] * rho [:, i]
-            sigma[i] = np.sum(factor[:, None, None] * matrix, axis = 0) / alpha[i]
+            sigma[i] = np.sum(factor[:, None, None] * matrix, axis = 0) / self.alpha[i]
         with open(self.output_folder + '/weights.txt', 'a') as file:
             np.savetxt(file, weights)
         self.adapted_distributions = self.adapted_distributions[:len(self.alpha)]
