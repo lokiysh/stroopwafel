@@ -204,15 +204,16 @@ class Pmc:
         for i in range(num_distributions):
             xPDF[i, :] = multivariate_normal.pdf(samples, mu[i], sigma[i], allow_singular = True)
         xPDF = xPDF.T
-        qPDF = xPDF * self.alpha
-        weights = pi  / (np.sum(xPDF, axis = 1) * q_norm * num_distributions**-1)
+        qPDF = xPDF * self.alpha * q_norm
+        weights = pi  / (np.sum(qPDF, axis = 1))
         with open(self.output_folder + '/weights.txt', 'a') as file:
             np.savetxt(file, weights)
         #Updating the gaussians from here
         if len(self.entropies) >= 2 and (self.entropies[-1] - self.entropies[-2]) < MAX_ENTROPY_CHANGE:
             return
         rho = qPDF / np.sum(qPDF, axis = 1)[:, None]
-        weights_normalized = ((pi * mask_hits) / np.sum(pi * mask_hits))[:, None]
+        gaussian_weights = (pi * mask_hits) / np.sum(qPDF, axis = 1)
+        weights_normalized = gaussian_weights / np.sum(gaussian_weights)
         self.alpha = np.sum(weights_normalized * rho, axis = 0)
         insignificant_components = np.argwhere(self.alpha < 1e-10)
         self.alpha = np.delete(self.alpha, insignificant_components)
