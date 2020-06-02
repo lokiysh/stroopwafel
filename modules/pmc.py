@@ -114,10 +114,9 @@ class Pmc:
         """
         self.num_hits = 0
         self.finished = 0
-        update_distributions = True
         for generation in range(NUM_GENERATIONS):
             samples = []
-            entropies = []
+            self.entropies = []
             self.distribution_rejection_rate = self.calculate_rejection_rate()
             self.num_samples_per_generation = int(self.total_num_systems / NUM_GENERATIONS)
             while self.num_samples_per_generation > 0:
@@ -146,13 +145,9 @@ class Pmc:
                     batches.append(current_batch)
                     self.batch_num = self.batch_num + 1
                 self.process_batches(batches, False)
+            self.calculate_weights_and_readjust_gaussians(samples)
             if self.finished >= self.total_num_systems:
                 break
-            if update_distributions:
-                entropy = self.calculate_weights_and_readjust_gaussians(samples)
-                if len(entropies) > 0 and (entropy - entropies[-1]) < MAX_ENTROPY_CHANGE:
-                    update_distributions = False
-                entropies.append(entropy)
         print ("\nRefinement phase finished, found %d hits out of %d tried. Rate = %.6f" %(self.num_hits, self.total_num_systems, self.num_hits / self.total_num_systems))
 
     def process_batches(self, batches, is_exploration_phase):
@@ -210,8 +205,13 @@ class Pmc:
             xPDF[i, :] = multivariate_normal.pdf(samples, mu[i], sigma[i], allow_singular = True)
         xPDF = xPDF.T
         qPDF = xPDF * self.alpha
-        rho = qPDF / np.sum(qPDF, axis = 1)[:, None]
         weights = pi  / (np.sum(xPDF, axis = 1) * q_norm * num_distributions**-1)
+        with open(self.output_folder + '/weights.txt', 'a') as file:
+            np.savetxt(file, weights)
+        #Updating the gaussians from here
+        if len(self.entropies) >= 2 and (self.entropies[-1] - self.entropies[-2]) < MAX_ENTROPY_CHANGE:
+            return
+        rho = qPDF / np.sum(qPDF, axis = 1)[:, None]
         weights_normalized = ((pi * mask_hits) / np.sum(pi * mask_hits))[:, None]
         self.alpha = np.sum(weights_normalized * rho, axis = 0)
         insignificant_components = np.argwhere(self.alpha < 1e-10)
@@ -226,14 +226,12 @@ class Pmc:
             matrix = np.einsum('nij,nji->nij', distance, distance)
             factor = weights_normalized[:, 0] * rho [:, i]
             sigma[i] = np.sum(factor[:, None, None] * matrix, axis = 0) / self.alpha[i]
-        with open(self.output_folder + '/weights.txt', 'a') as file:
-            np.savetxt(file, weights)
         self.adapted_distributions = self.adapted_distributions[:len(self.alpha)]
         for index, distribution in enumerate(self.adapted_distributions):
             for i, dimension in enumerate(sorted(distribution.mean.dimensions.keys(), key = lambda d: d.name)):
                 distribution.mean.dimensions[dimension] = mu[index][i]
             distribution.cov = sigma[index]
-        return np.exp(entropy(weights_normalized)) / num_samples
+        self.entropies.append(np.exp(entropy(weights_normalized)) / num_samples)
 
     def calculate_rejection_rate(self):
         num_rejected = 0
