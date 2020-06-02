@@ -215,18 +215,17 @@ class Pmc:
         weights_normalized = ((pi * mask_hits) / np.sum(pi * mask_hits))[:, None]
         self.alpha = np.sum(weights_normalized * rho, axis = 0)
         insignificant_components = np.argwhere(self.alpha < 1e-10)
+        self.alpha = np.delete(self.alpha, insignificant_components)
         for index in range(len(self.dimensions)):
             mu[:, index] = np.sum(weights_normalized * samples[:, index][:, None] * rho, axis = 0)
-        for i in range(num_distributions):
+        mu = np.delete(mu, insignificant_components, axis = 0)
+        mu = mu / self.alpha[:, None]
+        sigma = np.delete(sigma, insignificant_components, axis = 0)
+        for i in range(len(mu)):
             distance = np.asarray(mu[i] - samples)[:, :, None]
             matrix = np.einsum('nij,nji->nij', distance, distance)
             factor = weights_normalized[:, 0] * rho [:, i]
-            sigma[i] = np.sum(factor[:, None, None] * matrix, axis = 0)
-        self.alpha = np.delete(self.alpha, insignificant_components)
-        mu = np.delete(mu, insignificant_components, axis = 0)
-        sigma = np.delete(sigma, insignificant_components, axis = 0)
-        mu = mu / self.alpha[:, None]
-        sigma = sigma / self.alpha[:, None, None]
+            sigma[i] = np.sum(factor[:, None, None] * matrix, axis = 0) / alpha[i]
         with open(self.output_folder + '/weights.txt', 'a') as file:
             np.savetxt(file, weights)
         self.adapted_distributions = self.adapted_distributions[:len(self.alpha)]
