@@ -212,8 +212,8 @@ class Pmc:
         if len(self.entropies) >= 2 and (self.entropies[-1] - self.entropies[-2]) < MAX_ENTROPY_CHANGE:
             return
         rho = qPDF / np.sum(qPDF, axis = 1)[:, None]
-        gaussian_weights = (pi * mask_hits) / np.sum(qPDF, axis = 1)
-        weights_normalized = gaussian_weights / np.sum(gaussian_weights)
+        gaussian_weights = np.asarray((pi * mask_hits) / np.sum(qPDF, axis = 1))
+        weights_normalized = (gaussian_weights / np.sum(gaussian_weights))[:, None]
         self.alpha = np.sum(weights_normalized * rho, axis = 0)
         insignificant_components = np.argwhere(self.alpha < 1e-10)
         self.alpha = np.delete(self.alpha, insignificant_components)
