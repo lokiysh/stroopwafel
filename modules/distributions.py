@@ -84,13 +84,20 @@ class Gaussian(NDimensionalDistribution):
     sigma (Location) : The sigma of the gaussian. Also of Location class type
     kappa (float) : An independent scaling factor describing how wide the gaussian can be.
     """
-    def __init__(self, mean, sigma, kappa = 1):
+    def __init__(self, mean, sigma = None, rejection_rate = 0, alpha = 1, kappa = 1, cov = None):
         self.mean = mean
         self.sigma = sigma
         self.kappa = kappa
-        self.__bound_factor(False)
-        self.rejection_rate = 0
+        if cov == None:
+            if sigma != None:
+                self.cov = np.diagflat(np.power(np.asarray(self.sigma.to_array()), 2))
+            else:
+                raise Exception("Either sigma or cov value is needed")
+        else:
+            self.cov = cov
+        self.rejection_rate = rejection_rate
         self.biased_weight = 1
+        self.alpha = alpha
     """
         This function tells the class how to draw the samples for this class
         IN:
@@ -128,26 +135,8 @@ class Gaussian(NDimensionalDistribution):
             sigma = dict()
             for variable, val in hit.dimensions.items():
                 sigma[variable] = self.__calculate_sigma(average_density_one_dim, variable, val)
-            gaussians.append(Gaussian(hit, Location(sigma, {}), kappa))
+            gaussians.append(Gaussian(hit, sigma = Location(sigma, {}), kappa = kappa))
         return gaussians
-
-    """
-    This function is used to vary the width of the gaussian depending on how close it is to the edge of the dimension
-    """
-    def __bound_factor(self, consider = True):
-        self.cov = np.diagflat(np.power(np.asarray(self.sigma.to_array()), 2))
-        if not consider:
-            return
-        cov = []
-        for dimension in sorted(self.mean.dimensions.keys(), key = lambda d: d.name):
-            mean = self.mean.dimensions[dimension]
-            sigma = self.sigma.dimensions[dimension]
-            value = min([dimension.max_value - mean, mean - dimension.min_value]) / 2
-            if sigma < value:
-                value = sigma
-            self.sigma.dimensions[dimension] = value
-            cov.append(value**2)
-        self.cov = np.asarray(cov)
 
     @classmethod
     def __calculate_sigma(self, average_density_one_dim, dimension, value):

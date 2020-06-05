@@ -164,6 +164,6 @@ if __name__ == '__main__':
     pmc_object.explore(intial_pdf) #Pass in the initial distribution for exploration phase
     pmc_object.adapt(n_dimensional_distribution_type = distributions.Gaussian) #Adaptaion phase, tell stroopwafel what kind of distribution you would like to create instrumental distributions
     pmc_object.refine(n_dimensional_distribution_type = distributions.Gaussian) #Stroopwafel will draw samples from the adapted distributions
-
+    pmc_object.calculate_weights_of_samples()
     end_time = time.time()
     print ("Total running time = %d seconds" %(end_time - start_time))

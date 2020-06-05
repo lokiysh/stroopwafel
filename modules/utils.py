@@ -25,6 +25,8 @@ def generate_grid(locations, filename):
                     header.append(key.name)
                 current_location.append(value)
         for key, value in location.properties.items():
+            if key in ['generation', 'gaussian']:
+                continue
             if len(grid) == 0:
                 header.append(key)
             current_location.append(value)

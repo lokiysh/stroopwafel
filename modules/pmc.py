@@ -2,6 +2,8 @@ import os
 from utils import *
 import shutil
 from scipy.stats import multivariate_normal, entropy
+from distributions import Gaussian
+from classes import Location
 
 class Pmc:
 
@@ -11,7 +13,6 @@ class Pmc:
         self.num_samples_per_batch = num_samples_per_batch
         self.output_folder = output_folder
         self.output_filename = os.path.join(self.output_folder, output_filename)
-        self.exploratory_filename = os.path.join(self.output_folder, 'exploratory_samples.csv')
         self.debug = debug
         self.run_on_helios = run_on_helios
         self.mc_only = mc_only
@@ -72,6 +73,8 @@ class Pmc:
                 num_samples = int(2 * np.ceil(self.num_samples_per_batch / (1 - self.prior_fraction_rejected)))
                 (locations, mask) = intial_pdf.run_sampler(num_samples)
                 [location.revert_variables_to_original_scales() for location in locations]
+                [location.properties.update({'generation': 0}) for location in locations]
+                [location.properties.update({'gaussian': -1}) for location in locations]
                 if self.update_properties_method != None:
                     self.update_properties_method(locations, self.dimensions)
                 self.rejected_systems_method(locations, self.dimensions)
@@ -100,34 +103,36 @@ class Pmc:
         if self.num_hits == 0:
             print ("No hits in the exploration phase\n")
             exit()
-        hits = read_samples(self.exploratory_filename, self.dimensions, only_hits = True)
+        hits = read_samples(self.output_filename, self.dimensions, only_hits = True)
         [location.transform_variables_to_new_scales() for location in hits]
         average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(self.dimensions))
-        self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim, kappa = 5)
-        print_distributions(self.output_folder + '/distributions.csv', self.adapted_distributions)
-        self.alpha = np.ones(len(self.adapted_distributions)) / len(self.adapted_distributions)
+        self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim, kappa = 2)
+        for distribution in self.adapted_distributions:
+            distribution.alpha = 1 / len(self.adapted_distributions)
         print ("Adaptation phase finished!")
 
     def refine(self, n_dimensional_distribution_type):
         """
         Refinement phase of stroopwafel
         """
-        self.num_hits = 0
-        self.finished = 0
+        self.entropies = []
         for generation in range(NUM_GENERATIONS):
+            if self.finished >= self.total_num_systems:
+                break
             samples = []
-            self.entropies = []
             self.distribution_rejection_rate = self.calculate_rejection_rate()
-            self.num_samples_per_generation = int(self.total_num_systems / NUM_GENERATIONS)
+            self.num_samples_per_generation = int((self.total_num_systems - self.finished) / NUM_GENERATIONS)
+            self.print_distributions(self.adapted_distributions, generation + 1)
             while self.num_samples_per_generation > 0:
                 batches = []
                 for batch in range(min(self.num_batches_in_parallel, int(np.ceil(self.num_samples_per_generation / self.num_samples_per_batch)))):
                     current_batch = dict()
                     current_batch['number'] = self.batch_num
                     locations_ref = []
-                    num_samples = np.ceil(self.num_samples_per_batch / len(self.adapted_distributions))
-                    for distribution in self.adapted_distributions:
+                    num_samples = np.ceil(10 * self.num_samples_per_batch / len(self.adapted_distributions))
+                    for index, distribution in enumerate(self.adapted_distributions):
                         (locations, mask) = distribution.run_sampler(num_samples , self.dimensions, True)
+                        [location.properties.update({'gaussian': index + 1}) for location in locations]
                         locations_ref.extend(np.asarray(locations)[mask])
                     [location.revert_variables_to_original_scales() for location in locations_ref]
                     if self.update_properties_method != None:
@@ -138,6 +143,7 @@ class Pmc:
                     locations_ref = locations_ref[:self.num_samples_per_batch]
                     [location.properties.pop('is_rejected') for location in locations_ref]
                     current_batch['samples'] = locations_ref
+                    [location.properties.update({'generation': generation + 1}) for location in locations_ref]
                     samples.extend(locations_ref)
                     command = self.configure_code_run(current_batch)
                     generate_grid(locations_ref, current_batch['grid_filename'])
@@ -145,10 +151,13 @@ class Pmc:
                     batches.append(current_batch)
                     self.batch_num = self.batch_num + 1
                 self.process_batches(batches, False)
-            self.calculate_weights_and_readjust_gaussians(samples)
+            if generation < NUM_GENERATIONS - 1:
+                self.update_distributions(samples, tolerance = 1e-10)
             if self.finished >= self.total_num_systems:
                 break
-        print ("\nRefinement phase finished, found %d hits out of %d tried. Rate = %.6f" %(self.num_hits, self.total_num_systems, self.num_hits / self.total_num_systems))
+        num_refined = self.total_num_systems - self.num_explored
+        print_logs(self.output_folder, "total_num_systems", self.num_explored + num_refined)
+        print ("\nRefinement phase finished, found %d hits out of %d tried. Rate = %.6f" %(self.num_hits - len(self.adapted_distributions), num_refined, (self.num_hits - len(self.adapted_distributions)) / num_refined))
 
     def process_batches(self, batches, is_exploration_phase):
         """
@@ -170,16 +179,15 @@ class Pmc:
                 continue
             self.num_hits += hits
             self.finished += self.num_samples_per_batch
+            print_samples(batch['samples'], self.output_filename, 'a')
             if is_exploration_phase:
                 self.num_explored += self.num_samples_per_batch
                 self.update_fraction_explored()
-                print_samples(batch['samples'], self.exploratory_filename, 'a')
             else:
                 self.num_samples_per_generation -= self.num_samples_per_batch
-                print_samples(batch['samples'], self.output_filename, 'a')
             printProgressBar(self.finished, self.total_num_systems, prefix = 'progress', suffix = 'complete', length = 20)
 
-    def calculate_weights_and_readjust_gaussians(self, locations):
+    def update_distributions(self, locations, tolerance = 0):
         [location.transform_variables_to_new_scales() for location in locations]
         pi_norm = 1.0 / (1 - self.prior_fraction_rejected)
         q_norm = 1.0 / (1 - self.distribution_rejection_rate)
@@ -188,10 +196,12 @@ class Pmc:
         sigma = []
         pi = []
         mask_hits = []
+        alpha = []
         [samples.append(location.to_array()) for location in locations]
         [pi.append(location.calculate_prior_probability() * pi_norm) for location in locations]
         [mu.append(distribution.mean.to_array()) for distribution in self.adapted_distributions]
         [sigma.append(distribution.cov) for distribution in self.adapted_distributions]
+        [alpha.append(distribution.alpha) for distribution in self.adapted_distributions]
         [mask_hits.append(location.properties['is_hit']) for location in locations]
         samples = np.asarray(samples)
         mu = np.asarray(mu)
@@ -204,38 +214,72 @@ class Pmc:
         for i in range(num_distributions):
             xPDF[i, :] = multivariate_normal.pdf(samples, mu[i], sigma[i], allow_singular = True)
         xPDF = xPDF.T
-        qPDF = xPDF * self.alpha * q_norm
-        weights = pi  / (np.sum(qPDF, axis = 1))
-        with open(self.output_folder + '/weights.txt', 'a') as file:
-            np.savetxt(file, weights)
-        #Updating the gaussians from here
+        qPDF = xPDF * alpha * q_norm
         if len(self.entropies) >= 2 and (self.entropies[-1] - self.entropies[-2]) < MAX_ENTROPY_CHANGE:
-            return
+            # return
+            pass
         rho = qPDF / np.sum(qPDF, axis = 1)[:, None]
         gaussian_weights = np.asarray((pi * mask_hits) / np.sum(qPDF, axis = 1))
         weights_normalized = (gaussian_weights / np.sum(gaussian_weights))[:, None]
-        self.alpha = np.sum(weights_normalized * rho, axis = 0)
-        insignificant_components = np.argwhere(self.alpha < 1e-10)
-        self.alpha = np.delete(self.alpha, insignificant_components)
+        alpha = np.sum(weights_normalized * rho, axis = 0)
+        insignificant_components = np.argwhere(alpha <= tolerance)
+        alpha = np.delete(alpha, insignificant_components)
         for index in range(len(self.dimensions)):
             mu[:, index] = np.sum(weights_normalized * samples[:, index][:, None] * rho, axis = 0)
         mu = np.delete(mu, insignificant_components, axis = 0)
-        mu = mu / self.alpha[:, None]
+        mu = mu / alpha[:, None]
         sigma = np.delete(sigma, insignificant_components, axis = 0)
         for i in range(len(mu)):
             distance = np.asarray(mu[i] - samples)[:, :, None]
             matrix = np.einsum('nij,nji->nij', distance, distance)
             factor = weights_normalized[:, 0] * rho [:, i]
-            sigma[i] = np.sum(factor[:, None, None] * matrix, axis = 0) / self.alpha[i]
-        self.adapted_distributions = self.adapted_distributions[:len(self.alpha)]
+            sigma[i] = np.sum(factor[:, None, None] * matrix, axis = 0) / alpha[i]
+        self.adapted_distributions = self.adapted_distributions[:len(alpha)]
         for index, distribution in enumerate(self.adapted_distributions):
             for i, dimension in enumerate(sorted(distribution.mean.dimensions.keys(), key = lambda d: d.name)):
                 distribution.mean.dimensions[dimension] = mu[index][i]
             distribution.cov = sigma[index]
+            distribution.alpha = alpha[index]
+        print_logs(self.output_folder, "p", np.exp(entropy(weights_normalized)) / num_samples)
         self.entropies.append(np.exp(entropy(weights_normalized)) / num_samples)
 
+    def calculate_weights_of_samples(self):
+        locations = read_samples(self.output_filename, self.dimensions)
+        [location.transform_variables_to_new_scales() for location in locations]
+        pi_norm = 1.0 / (1 - self.prior_fraction_rejected)
+        pi = []
+        [pi.append(location.calculate_prior_probability() * pi_norm) for location in locations]
+        pi = np.asarray(pi)
+        num_samples = len(locations)
+        samples = []
+        [samples.append(location.to_array()) for location in locations]
+        samples = np.asarray(samples)
+        fraction_explored = self.num_explored / float(num_samples)
+        den = np.ones(num_samples) * (fraction_explored) * pi
+        for generation in range(NUM_GENERATIONS):
+            distributions = self.read_distributions(generation + 1)
+            num_distributions = len(distributions)
+            if num_distributions == 0:
+                continue
+            mu = []
+            sigma = []
+            alpha = []
+            [mu.append(distribution.mean.to_array()) for distribution in distributions]
+            [sigma.append(distribution.cov) for distribution in distributions]
+            [alpha.append(distribution.alpha) for distribution in distributions]
+            xPDF = np.zeros((num_distributions, num_samples))
+            for i in range(num_distributions):
+                xPDF[i, :] = multivariate_normal.pdf(samples, mu[i], sigma[i], allow_singular = True)
+            xPDF = xPDF.T
+            q_norm = 1 / (1 - distributions[0].rejection_rate)
+            q_PDF = xPDF * np.asarray(alpha)
+            den += (np.sum(q_PDF, axis = 1) * (1 - fraction_explored) * q_norm)
+        weights = pi / den
+        [location.properties.update({'mixture_weight' : weights[index]}) for index, location in enumerate(locations)]
+        print_samples(locations, self.output_filename, 'w')
+
     def calculate_rejection_rate(self):
-        num_rejected = 0
+        fractional_rejected = 0
         N_GAUSS = 10000
         for distribution in self.adapted_distributions:
             mask = np.ones(N_GAUSS)
@@ -243,5 +287,45 @@ class Pmc:
             samples = samples.T
             for index, dimension in enumerate(self.dimensions):
                 mask = (mask == 1) & (samples[index] >= dimension.min_value) & (samples[index] <= dimension.max_value)
-            num_rejected += N_GAUSS - np.sum(mask)
-        return num_rejected / (N_GAUSS * len(self.adapted_distributions))
+            fractional_rejected += (N_GAUSS - np.sum(mask)) * distribution.alpha / N_GAUSS
+        return fractional_rejected
+
+    def print_distributions(self, distributions, generation_number):
+        num_distributions = len(distributions)
+        with open(os.path.join(self.output_folder, "distributions_" + str(generation_number) + ".txt"), 'w') as file:
+            file.write("%d\n"%(generation_number))
+            file.write("%d\n"%(num_distributions))
+            file.write("%d\n"%(len(self.dimensions)))
+            file.write("%f\n"%(self.distribution_rejection_rate))
+            for distribution in distributions:
+                file.write("%f\n"%(distribution.alpha))
+                file.write("\t".join(str(i) for i in distribution.mean.to_array()))
+                file.write("\n")
+                for index in range(len(self.dimensions)):
+                    file.write("\t".join(str(i) for i in distribution.cov[index]))
+                    file.write("\n")
+
+    def read_distributions(self, generation_number):
+        try:
+            with open(os.path.join(self.output_folder, "distributions_" + str(generation_number) + ".txt"), 'r') as file:
+                generation_number = int(file.readline())
+                num_distributions = int(file.readline())
+                num_dimensions = int(file.readline())
+                distribution_rejection_rate = float(file.readline())
+                distributions = []
+                for index in range(num_distributions):
+                    alpha = float(file.readline())
+                    mean_values = file.readline().split("\t")
+                    cov = [[] for i in range(num_dimensions)]
+                    for i in range(num_dimensions):
+                        cov[i] = file.readline().split("\t")
+                    means = dict()
+                    for index, dimension in enumerate(sorted(self.dimensions, key = lambda d: d.name)):
+                        means[dimension] = mean_values[index]
+                    gaussian = Gaussian(Location(means, {}), cov = cov, alpha = alpha)
+                    gaussian.rejection_rate = distribution_rejection_rate
+                    distributions.append(gaussian)
+                return distributions
+        except Exception as error:
+            print (error)
+            return []
