@@ -121,7 +121,6 @@ class Pmc:
             self.distribution_rejection_rate = self.calculate_rejection_rate()
             self.num_samples_per_generation = int((self.total_num_systems - self.num_explored) / NUM_GENERATIONS)
             self.print_distributions(self.adapted_distributions, generation + 1)
-            print (self.num_samples_per_generation, generation)
             while self.num_samples_per_generation > 0 and self.finished < self.total_num_systems:
                 batches = []
                 for batch in range(min(self.num_batches_in_parallel, int(np.ceil(self.num_samples_per_generation / self.num_samples_per_batch)))):
