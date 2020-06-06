@@ -289,6 +289,7 @@ class Pmc:
             den += (np.sum(q_PDF, axis = 1) * (1 - fraction_explored) * q_norm)
         weights = pi / den
         [location.properties.update({'mixture_weight' : weights[index]}) for index, location in enumerate(locations)]
+        [location.revert_variables_to_original_scales() for location in locations]
         print_samples(locations, self.output_filename, 'w')
 
     def calculate_rejection_rate(self):
