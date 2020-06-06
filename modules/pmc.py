@@ -299,7 +299,7 @@ class Pmc:
             mask = np.ones(N_GAUSS)
             samples = multivariate_normal.rvs(mean = distribution.mean.to_array(), cov = distribution.cov, size = N_GAUSS)
             samples = samples.T
-            for index, dimension in enumerate(self.dimensions):
+            for index, dimension in enumerate(sorted(self.dimensions, key = lambda d: d.name)):
                 mask = (mask == 1) & (samples[index] >= dimension.min_value) & (samples[index] <= dimension.max_value)
             fractional_rejected += (N_GAUSS - np.sum(mask)) * distribution.alpha / N_GAUSS
         return fractional_rejected
