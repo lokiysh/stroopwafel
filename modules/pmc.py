@@ -341,10 +341,10 @@ class Pmc:
                 distributions = []
                 for index in range(num_distributions):
                     alpha = float(file.readline())
-                    mean_values = file.readline().split("\t")
+                    mean_values = [float(val) for val in file.readline().split("\t")]
                     cov = [[] for i in range(num_dimensions)]
                     for i in range(num_dimensions):
-                        cov[i] = file.readline().split("\t")
+                        cov[i] = [float(val) for val in file.readline().split("\t")]
                     means = dict()
                     for index, dimension in enumerate(sorted(self.dimensions, key = lambda d: d.name)):
                         means[dimension] = mean_values[index]
