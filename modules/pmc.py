@@ -90,6 +90,7 @@ class Pmc:
                 self.batch_num = self.batch_num + 1
             self.process_batches(batches, True)
         print ("\nExploratory phase finished, found %d hits out of %d explored. Rate = %.6f (fexpl = %.4f)" %(self.num_hits, self.num_explored, self.num_hits / self.num_explored, self.fraction_explored))
+        self.num_hits_exploratory = self.num_hits
         print_logs(self.output_folder, "num_explored", self.num_explored)
         if self.mc_only:
             exit()
@@ -106,7 +107,21 @@ class Pmc:
         hits = read_samples(self.output_filename, self.dimensions, only_hits = True)
         [location.transform_variables_to_new_scales() for location in hits]
         average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(self.dimensions))
-        self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim, kappa = 2)
+        self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim)
+        final_distributions = []
+        for distribution in self.adapted_distributions:
+            matches = 0
+            for existing_distribution in final_distributions:
+                d = self.bhattacharya_distance(distribution, existing_distribution)
+                if d >= 0.7:
+                    matches = 1
+                    break
+            if matches == 0:
+                final_distributions.append(distribution)
+        self.adapted_distributions = final_distributions
+        kappa = 2
+        for distribution in self.adapted_distributions:
+            distribution.cov *= kappa * kappa
         for distribution in self.adapted_distributions:
             distribution.alpha = 1 / len(self.adapted_distributions)
         print ("Adaptation phase finished!")
@@ -155,7 +170,7 @@ class Pmc:
                 break
         num_refined = self.total_num_systems - self.num_explored
         print_logs(self.output_folder, "total_num_systems", self.num_explored + num_refined)
-        print ("\nRefinement phase finished, found %d hits out of %d tried. Rate = %.6f" %(self.num_hits - len(self.adapted_distributions), num_refined, (self.num_hits - len(self.adapted_distributions)) / num_refined))
+        print ("\nRefinement phase finished, found %d hits out of %d tried. Rate = %.6f" %(self.num_hits - self.num_hits_exploratory, num_refined, (self.num_hits - self.num_hits_exploratory) / num_refined))
 
     def process_batches(self, batches, is_exploration_phase):
         """
@@ -287,6 +302,19 @@ class Pmc:
                 mask = (mask == 1) & (samples[index] >= dimension.min_value) & (samples[index] <= dimension.max_value)
             fractional_rejected += (N_GAUSS - np.sum(mask)) * distribution.alpha / N_GAUSS
         return fractional_rejected
+
+    def bhattacharya_distance(self, distribution1, distribution2):
+        mu1 = np.asarray(distribution1.mean.to_array())
+        mu2 = np.asarray(distribution2.mean.to_array())
+        cov1 = distribution1.cov
+        cov2 = distribution2.cov
+        distance = mu1 - mu2
+        sigma = (cov1 + cov2) / 2
+        term1 = (distance.T * np.linalg.inv(sigma) * distance) / 8
+        term2 = np.log(np.linalg.det(sigma) / np.sqrt(np.linalg.det(cov1) * np.linalg.det(cov2))) / 2
+        bhatt_distance = term1 + term2
+        bhatt_coeff = np.exp(-np.power(np.linalg.det(bhatt_distance), 1.0 / len(self.dimensions)))
+        return bhatt_coeff
 
     def print_distributions(self, distributions, generation_number):
         num_distributions = len(distributions)
