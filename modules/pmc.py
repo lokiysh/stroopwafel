@@ -5,6 +5,7 @@ from scipy.stats import multivariate_normal, entropy
 from distributions import Gaussian
 from classes import Location
 from constants import *
+from scipy.spatial import distance
 
 class Pmc:
 
@@ -255,6 +256,7 @@ class Pmc:
             distribution.alpha = alpha[index]
         print_logs(self.output_folder, "p", np.exp(entropy(weights_normalized)) / num_samples)
         self.entropies.append(np.exp(entropy(weights_normalized)) / num_samples)
+        self.add_original_forgotten_distributions()
 
     def calculate_weights_of_samples(self):
         locations = read_samples(self.output_filename, self.dimensions)
@@ -304,6 +306,24 @@ class Pmc:
             fractional_rejected += (N_GAUSS - np.sum(mask)) * distribution.alpha / N_GAUSS
         return fractional_rejected
 
+    def add_original_forgotten_distributions(self):
+        distributions = self.read_distributions(1)
+        distributions_to_add = []
+        for original_distribution in distributions:
+            forgotten = 1
+            for distribution in self.adapted_distributions:
+                d = self.mahalanobis_distance(distribution, original_distribution)
+                if d <= 2:
+                    forgotten = 0
+                    break
+            if forgotten == 1:
+                distributions_to_add.append(original_distribution)
+        for distribution in self.adapted_distributions:
+            distribution.alpha = 0.8 * distribution.alpha
+        for distribution in distributions_to_add:
+            distribution.alpha = 0.2 * distribution.alpha
+            self.adapted_distributions.append(distribution)
+
     def bhattacharya_distance(self, distribution1, distribution2):
         mu1 = np.asarray(distribution1.mean.to_array())
         mu2 = np.asarray(distribution2.mean.to_array())
@@ -316,6 +336,12 @@ class Pmc:
         bhatt_distance = term1 + term2
         bhatt_coeff = np.exp(-np.power(np.linalg.det(bhatt_distance), 1.0 / len(self.dimensions)))
         return bhatt_coeff
+
+    def mahalanobis_distance(self, distribution1, distribution2):
+        mu1 = np.asarray(distribution1.mean.to_array())
+        mu2 = np.asarray(distribution2.mean.to_array())
+        cov1 = distribution1.cov
+        return distance.mahalanobis(mu1, mu2, np.linalg.inv(cov1))
 
     def print_distributions(self, distributions, generation_number):
         num_distributions = len(distributions)
