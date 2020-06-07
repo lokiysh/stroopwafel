@@ -4,6 +4,7 @@ import shutil
 from scipy.stats import multivariate_normal, entropy
 from distributions import Gaussian
 from classes import Location
+from constants import *
 
 class Pmc:
 
@@ -119,9 +120,8 @@ class Pmc:
             if matches == 0:
                 final_distributions.append(distribution)
         self.adapted_distributions = final_distributions
-        kappa = 2
         for distribution in self.adapted_distributions:
-            distribution.cov *= kappa * kappa
+            distribution.cov *= KAPPA * KAPPA
         for distribution in self.adapted_distributions:
             distribution.alpha = 1 / len(self.adapted_distributions)
         print ("Adaptation phase finished!")
