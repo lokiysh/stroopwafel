@@ -286,7 +286,7 @@ class Pmc:
             xPDF = xPDF.T
             q_norm = 1 / (1 - distributions[0].rejection_rate)
             q_PDF = xPDF * np.asarray(alpha)
-            den += (np.sum(q_PDF, axis = 1) * (1 - fraction_explored) * q_norm)
+            den += (np.sum(q_PDF, axis = 1) * (1 - fraction_explored) * q_norm) / NUM_GENERATIONS
         weights = pi / den
         [location.properties.update({'mixture_weight' : weights[index]}) for index, location in enumerate(locations)]
         [location.revert_variables_to_original_scales() for location in locations]
