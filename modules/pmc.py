@@ -6,6 +6,7 @@ from distributions import Gaussian
 from classes import Location
 from constants import *
 from scipy.spatial import distance
+import sys
 
 class Pmc:
 
@@ -313,7 +314,7 @@ class Pmc:
             forgotten = 1
             for distribution in self.adapted_distributions:
                 d = self.mahalanobis_distance(distribution, original_distribution)
-                if d <= 2:
+                if d != None and d <= 2:
                     forgotten = 0
                     break
             if forgotten == 1:
@@ -341,7 +342,10 @@ class Pmc:
         mu1 = np.asarray(distribution1.mean.to_array())
         mu2 = np.asarray(distribution2.mean.to_array())
         cov1 = distribution1.cov
-        return distance.mahalanobis(mu1, mu2, np.linalg.inv(cov1))
+        if np.linalg.cond(cov1) < 1 / sys.float_info.epsilon:#Singular matrix check
+            return distance.mahalanobis(mu1, mu2, np.linalg.inv(cov1))
+        else:
+            return None
 
     def print_distributions(self, distributions, generation_number):
         num_distributions = len(distributions)
