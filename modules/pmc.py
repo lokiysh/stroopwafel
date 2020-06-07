@@ -165,7 +165,7 @@ class Pmc:
                     self.batch_num = self.batch_num + 1
                 self.process_batches(batches, False)
             if generation < NUM_GENERATIONS - 1:
-                self.update_distributions(samples, tolerance = 1e-10)
+                self.update_distributions(samples, tolerance = 0)
             if self.finished >= self.total_num_systems:
                 break
         num_refined = self.total_num_systems - self.num_explored
