@@ -111,17 +111,19 @@ class Pmc:
         [location.transform_variables_to_new_scales() for location in hits]
         average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(self.dimensions))
         self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim)
-        final_distributions = []
-        for distribution in self.adapted_distributions:
-            matches = 0
-            for existing_distribution in final_distributions:
-                d = self.bhattacharya_distance(distribution, existing_distribution)
-                if d >= 0.7:
-                    matches = 1
-                    break
-            if matches == 0:
-                final_distributions.append(distribution)
-        self.adapted_distributions = final_distributions
+        reduce_gaussians = False
+        if reduce_gaussians:
+            final_distributions = []
+            for distribution in self.adapted_distributions:
+                matches = 0
+                for existing_distribution in final_distributions:
+                    d = self.bhattacharya_distance(distribution, existing_distribution)
+                    if d >= 0.7:
+                        matches = 1
+                        break
+                if matches == 0:
+                    final_distributions.append(distribution)
+            self.adapted_distributions = final_distributions
         for distribution in self.adapted_distributions:
             distribution.cov *= KAPPA * KAPPA
         for distribution in self.adapted_distributions:
@@ -299,12 +301,13 @@ class Pmc:
         fractional_rejected = 0
         N_GAUSS = 10000
         for distribution in self.adapted_distributions:
-            mask = np.ones(N_GAUSS)
-            samples = multivariate_normal.rvs(mean = distribution.mean.to_array(), cov = distribution.cov, size = N_GAUSS)
-            samples = samples.T
-            for index, dimension in enumerate(sorted(self.dimensions, key = lambda d: d.name)):
-                mask = (mask == 1) & (samples[index] >= dimension.min_value) & (samples[index] <= dimension.max_value)
-            fractional_rejected += (N_GAUSS - np.sum(mask)) * distribution.alpha / N_GAUSS
+            (locations, mask) = distribution.run_sampler(N_GAUSS, self.dimensions)
+            rejected = N_GAUSS - np.sum(mask)
+            locations = np.asarray(locations)[mask]
+            [location.revert_variables_to_original_scales() for location in locations]
+            self.update_properties_method(locations, self.dimensions)
+            rejected += self.rejected_systems_method(locations, self.dimensions)
+            fractional_rejected += rejected * distribution.alpha / N_GAUSS
         return fractional_rejected
 
     def add_original_forgotten_distributions(self):
