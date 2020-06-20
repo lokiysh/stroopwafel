@@ -146,8 +146,8 @@ class Pmc:
                     current_batch = dict()
                     current_batch['number'] = self.batch_num
                     locations_ref = []
-                    num_samples = np.ceil(10 * self.num_samples_per_batch / len(self.adapted_distributions))
                     for index, distribution in enumerate(self.adapted_distributions):
+                        num_samples = self.num_samples_per_batch * distribution.alpha
                         (locations, mask) = distribution.run_sampler(num_samples , self.dimensions, True)
                         [location.properties.update({'gaussian': index + 1}) for location in locations]
                         locations_ref.extend(np.asarray(locations)[mask])
@@ -249,7 +249,7 @@ class Pmc:
         for i in range(len(mu)):
             distance = np.asarray(mu[i] - samples)[:, :, None]
             matrix = np.einsum('nij,nji->nij', distance, distance)
-            factor = weights_normalized[:, 0] * rho [:, i]
+            factor = weights_normalized[:, 0] * rho[:, i]
             sigma[i] = np.sum(factor[:, None, None] * matrix, axis = 0) / alpha[i]
         self.adapted_distributions = self.adapted_distributions[:len(alpha)]
         for index, distribution in enumerate(self.adapted_distributions):
@@ -259,7 +259,7 @@ class Pmc:
             distribution.alpha = alpha[index]
         print_logs(self.output_folder, "p", np.exp(entropy(weights_normalized)) / num_samples)
         self.entropies.append(np.exp(entropy(weights_normalized)) / num_samples)
-        self.add_original_forgotten_distributions()
+        # self.add_original_forgotten_distributions()
 
     def calculate_weights_of_samples(self):
         locations = read_samples(self.output_filename, self.dimensions)
