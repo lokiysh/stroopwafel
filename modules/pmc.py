@@ -137,6 +137,7 @@ class Pmc:
         Refinement phase of stroopwafel
         """
         self.entropies = []
+        self.should_update = True
         for generation in range(NUM_GENERATIONS):
             samples = []
             self.distribution_rejection_rate = self.calculate_rejection_rate()
@@ -170,7 +171,7 @@ class Pmc:
                     batches.append(current_batch)
                     self.batch_num = self.batch_num + 1
                 self.process_batches(batches, False)
-            if generation < NUM_GENERATIONS - 1:
+            if generation < NUM_GENERATIONS - 1 and self.should_update:
                 self.update_distributions(samples, tolerance = 0)
             if self.finished >= self.total_num_systems:
                 break
@@ -234,9 +235,6 @@ class Pmc:
             xPDF[i, :] = multivariate_normal.pdf(samples, mu[i], sigma[i], allow_singular = True)
         xPDF = xPDF.T
         qPDF = xPDF * alpha * q_norm
-        if len(self.entropies) >= 2 and (self.entropies[-1] - self.entropies[-2]) < MAX_ENTROPY_CHANGE:
-            # return
-            pass
         rho = qPDF / np.sum(qPDF, axis = 1)[:, None]
         gaussian_weights = np.asarray((pi * mask_hits) / np.sum(qPDF, axis = 1))
         weights_normalized = (gaussian_weights / np.sum(gaussian_weights))[:, None]
@@ -253,14 +251,19 @@ class Pmc:
             matrix = np.einsum('nij,nji->nij', distance, distance)
             factor = weights_normalized[:, 0] * rho[:, i]
             sigma[i] = np.sum(factor[:, None, None] * matrix, axis = 0) / alpha[i]
+        #check entropy change, maybe we already reached maximum
+        entropy_change = np.exp(entropy(weights_normalized)) / num_samples
+        if len(self.entropies) >= 1 and entropy_change - self.entropies[-1] < MIN_ENTROPY_CHANGE:
+            self.should_update = False
+            return
         self.adapted_distributions = self.adapted_distributions[:len(alpha)]
         for index, distribution in enumerate(self.adapted_distributions):
             for i, dimension in enumerate(sorted(distribution.mean.dimensions.keys(), key = lambda d: d.name)):
                 distribution.mean.dimensions[dimension] = mu[index][i]
             distribution.cov = sigma[index]
             distribution.alpha = alpha[index]
-        print_logs(self.output_folder, "p", np.exp(entropy(weights_normalized)) / num_samples)
-        self.entropies.append(np.exp(entropy(weights_normalized)) / num_samples)
+        print_logs(self.output_folder, "p", entropy_change)
+        self.entropies.append(entropy_change)
         # self.add_original_forgotten_distributions()
 
     def calculate_weights_of_samples(self):
