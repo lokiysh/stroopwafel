@@ -7,6 +7,7 @@ from classes import Location
 from constants import *
 from scipy.spatial import distance
 import sys
+import hdbscan
 
 class Pmc:
 
@@ -109,6 +110,7 @@ class Pmc:
             exit()
         hits = read_samples(self.output_filename, self.dimensions, only_hits = True)
         [location.transform_variables_to_new_scales() for location in hits]
+        hits = self.cluster_hits(hits)
         average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(self.dimensions))
         self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim)
         reduce_gaussians = False
@@ -309,6 +311,16 @@ class Pmc:
             rejected += self.rejected_systems_method(locations, self.dimensions)
             fractional_rejected += rejected * distribution.alpha / N_GAUSS
         return fractional_rejected
+
+    def cluster_hits(self, hits):
+        clusterer = hdbscan.HDBSCAN(min_cluster_size = 2)
+        samples = [location.to_array() for location in hits]
+        clusterer.fit(samples)
+        components, index = np.unique(clusterer.labels_, return_index = True)
+        compressed_hits = []
+        for i in index:
+            compressed_hits.append(hits[i])
+        return compressed_hits
 
     def add_original_forgotten_distributions(self):
         distributions = self.read_distributions(1)
