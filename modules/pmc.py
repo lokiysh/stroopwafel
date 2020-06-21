@@ -172,7 +172,7 @@ class Pmc:
                     self.batch_num = self.batch_num + 1
                 self.process_batches(batches, False)
             if generation < NUM_GENERATIONS - 1 and self.should_update:
-                self.update_distributions(samples, tolerance = 0)
+                self.update_distributions(samples, tolerance = 1e-10)
             if self.finished >= self.total_num_systems:
                 break
         num_refined = self.total_num_systems - self.num_explored
@@ -254,6 +254,9 @@ class Pmc:
         #check entropy change, maybe we already reached maximum
         entropy_change = np.exp(entropy(weights_normalized)) / num_samples
         if len(self.entropies) >= 1 and entropy_change - self.entropies[-1] < MIN_ENTROPY_CHANGE:
+            #this is not a good update, probably the last one was the best, so lets revert to it
+            generation_to_revert = len(self.entropies)
+            self.adapted_distributions = self.read_distributions(generation_to_revert)
             self.should_update = False
             return
         self.adapted_distributions = self.adapted_distributions[:len(alpha)]
