@@ -76,7 +76,6 @@ def configure_code_run(batch):
     compas_args = [compas_executable, "--grid", grid_filename, '--outputPath', output_folder, '--logfile-delimiter', 'COMMA', '--output-container', output_container, '--random-seed', np.random.randint(2, 2**63 - 1)]
     for params in extra_params:
         compas_args.extend(params.split("="))
-    print (compas_args)
     batch['grid_filename'] = grid_filename
     batch['output_container'] = output_container
     return compas_args
