@@ -7,7 +7,7 @@ from classes import Location
 from constants import *
 import sys
 
-class Pmc:
+class Genais:
 
     def __init__(self, total_num_systems, num_batches_in_parallel, num_samples_per_batch, output_folder, output_filename, debug = False, run_on_helios = True, mc_only = False):
         self.total_num_systems = total_num_systems
@@ -238,6 +238,7 @@ class Pmc:
         entropy_change = np.exp(entropy(weights_normalized)) / num_samples
         if len(self.entropies) >= 1 and entropy_change - self.entropies[-1] < MIN_ENTROPY_CHANGE:
             #this is not a good update, probably the last one was the best, so lets revert to it
+            print (entropy_change)
             generation_to_revert = len(self.entropies)
             self.adapted_distributions = self.read_distributions(generation_to_revert)
             self.should_update = False
