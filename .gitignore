@@ -1,3 +1,6 @@
 *.pyc
 *~
 *.swp
+*.txt
+Florisinterface.py
+.gitignore

@@ -5,11 +5,9 @@ from scipy.stats import multivariate_normal, entropy
 from distributions import Gaussian
 from classes import Location
 from constants import *
-from scipy.spatial import distance
 import sys
-import hdbscan
 
-class Pmc:
+class Genais:
 
     def __init__(self, total_num_systems, num_batches_in_parallel, num_samples_per_batch, output_folder, output_filename, debug = False, run_on_helios = True, mc_only = False):
         self.total_num_systems = total_num_systems
@@ -110,25 +108,10 @@ class Pmc:
             exit()
         hits = read_samples(self.output_filename, self.dimensions, only_hits = True)
         [location.transform_variables_to_new_scales() for location in hits]
-        hits = self.cluster_hits(hits)
         average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(self.dimensions))
         self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim)
-        reduce_gaussians = False
-        if reduce_gaussians:
-            final_distributions = []
-            for distribution in self.adapted_distributions:
-                matches = 0
-                for existing_distribution in final_distributions:
-                    d = self.bhattacharya_distance(distribution, existing_distribution)
-                    if d >= 0.7:
-                        matches = 1
-                        break
-                if matches == 0:
-                    final_distributions.append(distribution)
-            self.adapted_distributions = final_distributions
         for distribution in self.adapted_distributions:
             distribution.cov *= KAPPA * KAPPA
-        for distribution in self.adapted_distributions:
             distribution.alpha = 1 / len(self.adapted_distributions)
         print ("Adaptation phase finished!")
 
@@ -255,6 +238,7 @@ class Pmc:
         entropy_change = np.exp(entropy(weights_normalized)) / num_samples
         if len(self.entropies) >= 1 and entropy_change - self.entropies[-1] < MIN_ENTROPY_CHANGE:
             #this is not a good update, probably the last one was the best, so lets revert to it
+            print (entropy_change)
             generation_to_revert = len(self.entropies)
             self.adapted_distributions = self.read_distributions(generation_to_revert)
             self.should_update = False
@@ -317,56 +301,6 @@ class Pmc:
             rejected += self.rejected_systems_method(locations, self.dimensions)
             fractional_rejected += rejected * distribution.alpha / N_GAUSS
         return fractional_rejected
-
-    def cluster_hits(self, hits):
-        clusterer = hdbscan.HDBSCAN(min_cluster_size = 2)
-        samples = [location.to_array() for location in hits]
-        clusterer.fit(samples)
-        components, index = np.unique(clusterer.labels_, return_index = True)
-        compressed_hits = []
-        for i in index:
-            compressed_hits.append(hits[i])
-        return compressed_hits
-
-    def add_original_forgotten_distributions(self):
-        distributions = self.read_distributions(1)
-        distributions_to_add = []
-        for original_distribution in distributions:
-            forgotten = 1
-            for distribution in self.adapted_distributions:
-                d = self.mahalanobis_distance(distribution, original_distribution)
-                if d != None and d <= 2:
-                    forgotten = 0
-                    break
-            if forgotten == 1:
-                distributions_to_add.append(original_distribution)
-        for distribution in self.adapted_distributions:
-            distribution.alpha = 0.8 * distribution.alpha
-        for distribution in distributions_to_add:
-            distribution.alpha = 0.2 * distribution.alpha
-            self.adapted_distributions.append(distribution)
-
-    def bhattacharya_distance(self, distribution1, distribution2):
-        mu1 = np.asarray(distribution1.mean.to_array())
-        mu2 = np.asarray(distribution2.mean.to_array())
-        cov1 = distribution1.cov
-        cov2 = distribution2.cov
-        distance = mu1 - mu2
-        sigma = (cov1 + cov2) / 2
-        term1 = (distance.T * np.linalg.inv(sigma) * distance) / 8
-        term2 = np.log(np.linalg.det(sigma) / np.sqrt(np.linalg.det(cov1) * np.linalg.det(cov2))) / 2
-        bhatt_distance = term1 + term2
-        bhatt_coeff = np.exp(-np.power(np.linalg.det(bhatt_distance), 1.0 / len(self.dimensions)))
-        return bhatt_coeff
-
-    def mahalanobis_distance(self, distribution1, distribution2):
-        mu1 = np.asarray(distribution1.mean.to_array())
-        mu2 = np.asarray(distribution2.mean.to_array())
-        cov1 = distribution1.cov
-        if np.linalg.cond(cov1) < 1 / sys.float_info.epsilon:#Singular matrix check
-            return distance.mahalanobis(mu1, mu2, np.linalg.inv(cov1))
-        else:
-            return None
 
     def print_distributions(self, distributions, generation_number):
         num_distributions = len(distributions)
