@@ -33,17 +33,10 @@ def create_dimensions():
     OUT:
         As Output, this should return a list containing all the instances of Dimension class.
     """
-<<<<<<< HEAD
     m1 = classes.Dimension('Mass_1', 8, 150, sampler.kroupa, prior.kroupa)
     q = classes.Dimension('q', 0.01, 1, sampler.uniform, prior.uniform, should_print = False)
     metallicity_1 = classes.Dimension('Metallicity_1', 1e-4, 0.023, sampler.flat_in_log, prior.flat_in_log)
     a = classes.Dimension('Separation', 0.01, 1000, sampler.flat_in_log, prior.flat_in_log)
-=======
-    m1 = classes.Dimension('Mass_1', 5, 50, sampler.kroupa, prior.kroupa)
-    q = classes.Dimension('q', 0.2, 1, sampler.uniform, prior.uniform, should_print = False)
-    metallicity_1 = classes.Dimension('Metallicity_1', 0.0001, 0.023, sampler.flat_in_log, prior.flat_in_log)
-    a = classes.Dimension('Separation', 0.01, 100, sampler.flat_in_log, prior.flat_in_log)
->>>>>>> 69e16f0f819d6e430de961401813b7437e21f97f
     #kick_velocity_random_1 = classes.Dimension('Kick_Velocity_Random_1', 0, 1, sampler.uniform, prior.uniform)
     #kick_theta_1 = classes.Dimension('Kick_Theta_1', -np.pi / 2, np.pi / 2, sampler.uniform_in_sine, prior.uniform_in_sine)
     #kick_phi_1 = classes.Dimension('Kick_Phi_1', 0, 2 * np.pi, sampler.uniform, prior.uniform)
@@ -185,11 +178,7 @@ def configure_code_run(batch):
     output_container = 'batch_' + str(batch_num)
     #get and combine commandline arguments
     extra_arg           = get_extra_arg()
-<<<<<<< HEAD
     sw_args             = [compas_executable, "--grid", grid_filename, '--outputPath', output_folder, '--output-container', output_container, '--random-seed', current_seed]
-=======
-    sw_args             = [compas_executable, "--grid", grid_filename, '--outputPath', output_folder, '--output-container', output_container, '--initial-mass-power', 0.0, '--random-seed', current_seed]
->>>>>>> 69e16f0f819d6e430de961401813b7437e21f97f
     input_arg           = sw_args + extra_arg
 
     default_args        = get_default_COMPAS_commands()

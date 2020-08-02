@@ -43,11 +43,7 @@ export OUT_DIR=%s
 #copy relevant files
 cp $SW_ROOT_DIR/GridCallStroopwafel_input.py $BASE_DIR/
 cp $SW_ROOT_DIR/COMPAS_Output_Definitions.txt $BASE_DIR/
-<<<<<<< HEAD
 cp $SW_ROOT_DIR/randomSeed.txt $BASE_DIR/
-=======
-cp $SW_ROOT_DIR/RandomSeed.txt $OUT_DIR/
->>>>>>> 69e16f0f819d6e430de961401813b7437e21f97f
 #
 #CD to folder
 cd $SW_ROOT_DIR
@@ -80,7 +76,6 @@ cd $OUT_DIR
 #Run postProcessing to combine output
 python $OUT_DIR/postProcessing.py --masterFolderDir $OUT_DIR/masterFolder > $OUT_DIR/COMPAS_PP.log
 """
-<<<<<<< HEAD
 #
 
 CI_SlurmJobStringTemplate="""#!/bin/bash
@@ -103,9 +98,6 @@ cd $OUT_DIR
 #Run Coens cosmic integration to calculate CI weights
 python $OUT_DIR/ComputeCIweights.py > $OUT_DIR/COMPAS_CI.log
 """
-=======
-
->>>>>>> 69e16f0f819d6e430de961401813b7437e21f97f
 #
 
 def runBashCommand(bashCommand, verbose=True):
@@ -134,47 +126,26 @@ if __name__ == '__main__':
 	# set variables
 	###############################################
 	job_name 		= "StroopGrid"
-<<<<<<< HEAD
 	number_of_nodes = 1
 	number_of_cores = 50 
 	walltime 		= "5:30:00"
 	memory 			= 0#12000
 	send_email		= True
 	user_email 		= "aac.van.son@gmail.com"
-=======
-	number_of_nodes 	= 1
-	number_of_cores 	= 50 
-	walltime 		= "5:30:00"
-	memory 			= 0#12000
-	send_email		= True
-	user_email 		= ""#"aac.van.son@gmail.com"
->>>>>>> 69e16f0f819d6e430de961401813b7437e21f97f
 	COMPAS_ROOT_DIR = "/n/home04/lvanson/Programs/COMPAS/" #"/Users/lieke/Documents/COMPAS/"
 	SW_ROOT_DIR 	= "/n/home04/lvanson/Programs/stroopwafel/"#"/Users/lieke/surfdrive/Documents/CompareCOMPAS/Code/"
 
 	#Parameters for interface.py
-<<<<<<< HEAD
 	I_num_systems	= int(1e4) # Number of systems per grid point
      # !! WARNING each batch has a max run time of 1 Hr and mem 1Gb
      # This corresponds to approx 3000 sys per core
 	I_num_per_core	= 1000  # Number of systems run per core
 	I_num_of_core	= 10	# number of cores/batches to run per grid point
-=======
-	I_num_systems	= 100000 # Number of systems per grid point
-        # !! WARNING each batch has a max run time of 1 Hr and mem 1Gb
-        # This corresponds to approx 3000 sys per core
-	I_num_per_core	= 1000  # Number of systems run per core => Nbatch= I_num_systems/I_num_per_core
-	I_num_of_core	= 50	# number of cores/batches to run per grid point
->>>>>>> 69e16f0f819d6e430de961401813b7437e21f97f
 
 	###############################################
 	# Base outbut dir
 	###############################################
-<<<<<<< HEAD
 	base_OUT_DIR			= "/n/de_mink_lab/Users/lvanson/CompasOutput/StroopwafelTest/TryGridN1e4/"
-=======
-	base_OUT_DIR			= "/n/de_mink_lab/Users/lvanson/CompasOutput/Grid_3x3_N1e5/"
->>>>>>> 69e16f0f819d6e430de961401813b7437e21f97f
 	#"/Users/lieke/surfdrive/Documents/CompareCOMPAS/CompasOutput/SW/GridTest3x3/"#
 	pklName='pickledGrid.pkl'
 	verbose = True
@@ -189,13 +160,8 @@ if __name__ == '__main__':
 	#  To see available options to change do 
 	#  $COMPAS_ROOT_DIR/COMPAS/COMPAS --help
 	gridDictionary = {}
-<<<<<<< HEAD
 	gridDictionary['--common-envelope-alpha'] = np.linspace(1.,10.,1) 
 	gridDictionary['--wolf-rayet-multiplier'] = np.linspace(0.2,2,1) 
-=======
-	gridDictionary['--common-envelope-alpha'] = [0.1,1.0, 10]#np.linspace(1.,10.,3) 
-	gridDictionary['--wolf-rayet-multiplier'] = np.linspace(0.1,1.9,3) 
->>>>>>> 69e16f0f819d6e430de961401813b7437e21f97f
 	dirNames = ['alpha', 'fWR']
 	keys = list(gridDictionary.keys())
 	I_flags			= "--common-envelope-alpha --wolf-rayet-multiplier"
@@ -238,28 +204,6 @@ if __name__ == '__main__':
 		sbatchFile.write(interface_job_string)
 		sbatchFile.close()
 
-<<<<<<< HEAD
-=======
-
-		###############################################
-		# Generate Slurm Job String for postprocessing
-		###############################################
-		PPoutfile 		= OUT_DIR + "COMPAS_PP.out"
-		PPerrfile 		= OUT_DIR + "COMPAS_PP.err"
-		PP_job_string = PP_SlurmJobStringTemplate % (PPoutfile, PPerrfile, OUT_DIR)
-		# print(PP_job_string)
-		# Save to a file
-		PPsbatchFile = open(OUT_DIR+'/postProcessing.sbatch','w')
-		PPsbatchFile.write(PP_job_string)
-		PPsbatchFile.close()
-
-
-		###############################################
-		# Run bash command
-		###############################################
-		# runBashCommand(interface_job_string, verbose=False)
-
->>>>>>> 69e16f0f819d6e430de961401813b7437e21f97f
 		###############################################
 		# Send SW command to bash
 		###############################################	
@@ -279,7 +223,6 @@ if __name__ == '__main__':
 		print("main_job_id", main_job_id)
 
 		###############################################
-<<<<<<< HEAD
 		# Generate Slurm Job String for postprocessing
 		###############################################
 		PPoutfile 		= OUT_DIR + "COMPAS_PP.out"
@@ -295,12 +238,6 @@ if __name__ == '__main__':
 		# Send PP command to bash with afterok main COMPAS
 		###############################################	        
 		sbatchPPCommand = 'sbatch --dependency=afterok:' + str(int(main_job_id)) + ' ' + os.path.join(OUT_DIR+'/postProcessing.sbatch') 
-=======
-		# Send PP command to bash with afterok
-		###############################################	        
-		sbatchPPCommand = 'sbatch --dependency=afterok:' + str(int(main_job_id)) + ' ' + os.path.join(OUT_DIR+'/postProcessing.sbatch') 
-		print('sbatchPPCommand', sbatchPPCommand)
->>>>>>> 69e16f0f819d6e430de961401813b7437e21f97f
 		# Open a pipe to the sbatch command.
 		proc = Popen(sbatchPPCommand, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE, close_fds=True)
 		# Send job_string to sbatch
@@ -317,7 +254,6 @@ if __name__ == '__main__':
 		print("Post-processing job ID = ", ppJobID)
 
 
-<<<<<<< HEAD
 		###################################################
 		# Generate Slurm Job String for Cosmic integration
 		###################################################
@@ -354,7 +290,5 @@ if __name__ == '__main__':
 		# Run bash command (OLD)
 		###############################################
 		# runBashCommand(interface_job_string, verbose=False)
-=======
->>>>>>> 69e16f0f819d6e430de961401813b7437e21f97f
 
 
