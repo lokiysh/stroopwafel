@@ -52,6 +52,7 @@ cd $SW_ROOT_DIR
 python $SW_ROOT_DIR/LiekeInterface.py --output_folder=$OUT_DIR --run_on_helios=True --num_systems=%s --num_per_core=%s --num_cores=%s --logfile-definition=$BASE_DIR/COMPAS_Output_Definitions.txt --compas_arg_flags="%s" --compas_arg_vals %s %s > $OUT_DIR/LiekeInterface.log 
 
 cp $COMPAS_ROOT_DIR/CompasHPC/postProcessing.py  $OUT_DIR/
+cp $COMPAS_ROOT_DIR/postProcessing/Folders/CosmicIntegration/PythonScripts_lieke/ComputeCIweights.py  $OUT_DIR/
 """
 #--dependency=afterok:' + str(dependencyID)
 # --compas_arg_flags="%s" --compas_arg_vals %s %s
@@ -136,7 +137,7 @@ if __name__ == '__main__':
 	SW_ROOT_DIR 	= "/n/home04/lvanson/Programs/stroopwafel/"#"/Users/lieke/surfdrive/Documents/CompareCOMPAS/Code/"
 
 	#Parameters for interface.py
-	I_num_systems	= int(1e4) # Number of systems per grid point
+	I_num_systems	= int(1e5) # Number of systems per grid point
      # !! WARNING each batch has a max run time of 1 Hr and mem 1Gb
      # This corresponds to approx 3000 sys per core
 	I_num_per_core	= 1000  # Number of systems run per core
@@ -145,7 +146,7 @@ if __name__ == '__main__':
 	###############################################
 	# Base outbut dir
 	###############################################
-	base_OUT_DIR			= "/n/de_mink_lab/Users/lvanson/CompasOutput/StroopwafelTest/TryGridN1e4/"
+	base_OUT_DIR			= "/n/de_mink_lab/Users/lvanson/CompasOutput/CItest_Default_N1e5"
 	#"/Users/lieke/surfdrive/Documents/CompareCOMPAS/CompasOutput/SW/GridTest3x3/"#
 	pklName='pickledGrid.pkl'
 	verbose = True
@@ -160,8 +161,8 @@ if __name__ == '__main__':
 	#  To see available options to change do 
 	#  $COMPAS_ROOT_DIR/COMPAS/COMPAS --help
 	gridDictionary = {}
-	gridDictionary['--common-envelope-alpha'] = np.linspace(1.,10.,1) 
-	gridDictionary['--wolf-rayet-multiplier'] = np.linspace(0.2,2,1) 
+	gridDictionary['--common-envelope-alpha'] = [1.0]#np.linspace(1.,10.,1) 
+	gridDictionary['--wolf-rayet-multiplier'] = [1.0]#np.linspace(0.2,2,1) 
 	dirNames = ['alpha', 'fWR']
 	keys = list(gridDictionary.keys())
 	I_flags			= "--common-envelope-alpha --wolf-rayet-multiplier"
