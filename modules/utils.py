@@ -117,7 +117,6 @@ def generate_slurm_file(command, batch_num, output_folder):
     writer = open(slurm_file, 'w')
     writer.write("#!/bin/bash\n")
     writer.write("#SBATCH --mem-per-cpu=1024\n")
-    writer.write("#SBATCH --time=1:00:00\n")
     writer.write("#SBATCH --output=output.out\n")
     writer.write(command + " > " + log_file + " \n")
     writer.close()
