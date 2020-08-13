@@ -71,3 +71,18 @@ def uniform_in_sine(num_samples, **kwargs):
     x = kwargs['x']
     y = kwargs['y']
     return np.random.uniform(x, y, num_samples)
+
+
+def uniform_in_cosine(num_samples, **kwargs):
+    """
+    method to run a uniform cosine sampling  useful for example in solid angles sampling
+    IN:
+        num_samples (int) : number of samples to be returned
+        x (float) : starting value
+        y (float) : ending value
+    OUT:
+        a list of samples in the range [x, y) considering uniformly in sine sampling distribution
+    """
+    x = kwargs['x']
+    y = kwargs['y']
+    return np.random.uniform(x, y, num_samples)

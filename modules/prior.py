@@ -36,3 +36,9 @@ def uniform_in_sine(dimension, value):
     #return np.abs(np.cos(value)) / norm_const
     #This will assume that all values are already in sin
     return 1.0 / (dimension.max_value - dimension.min_value)
+
+def uniform_in_cosine(dimension, value):
+    #norm_const = 2
+    #return np.abs(np.cos(value)) / norm_const
+    #This will assume that all values are already in sin
+    return 1.0 / (dimension.max_value - dimension.min_value)
