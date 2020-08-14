@@ -22,8 +22,8 @@ class Dimension:
             self.min_value = np.log10(min_value)
             self.max_value = np.log10(max_value)
         elif self.sampler.__name__ == sp.uniform_in_sine.__name__:
-            self.min_value = np.sin(min_value)
-            self.max_value = np.sin(max_value)
+            self.min_value = -1
+            self.max_value = 1
         elif self.sampler.__name__ == sp.uniform_in_cosine.__name__:
             self.min_value = -1
             self.max_value = 1
@@ -103,7 +103,7 @@ class Location:
             elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
                 self.dimensions[dimension] = np.arcsin(value)
             elif dimension.sampler.__name__ == sp.uniform_in_cosine.__name__:
-                self.dimensions[dimension] = np.arccos(value)
+                self.dimensions[dimension] = np.arccos(value) - np.pi / 2
 
     """
     Converts each value of the location to the new transformed scale
@@ -115,7 +115,7 @@ class Location:
             elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
                 self.dimensions[dimension] = np.sin(value)
             elif dimension.sampler.__name__ == sp.uniform_in_cosine.__name__:
-                self.dimensions[dimension] = np.cos(value)
+                self.dimensions[dimension] = np.cos(value + np.pi / 2)
 
     def calculate_prior_probability(self):
         p = 1
