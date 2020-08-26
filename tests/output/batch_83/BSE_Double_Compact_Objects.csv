@@ -1,7 +1,0 @@
-    INT     ,    INT     ,    FLOAT     ,     FLOAT      ,    FLOAT     ,     INT      ,    FLOAT     ,     INT      ,     FLOAT      ,     FLOAT      ,   INT   ,   INT   ,       BOOL       ,    BOOL     ,    BOOL     
-     -      ,     -      ,      AU      ,       -        ,     Msol     ,      -       ,     Msol     ,      -       ,      Myr       ,      Myr       ,    -    ,    -    ,      State       ,    Event    ,    Event    
-     ID     ,    SEED    ,Separation@DCO,Eccentricity@DCO,    Mass_1    ,Stellar_Type_1,    Mass_2    ,Stellar_Type_2,Coalescence_Time,      Time      ,MT_Case_1,MT_Case_2,Merges_Hubble_Time,Recycled_NS_1,Recycled_NS_2
-       41447,   819325277,  2.944789e-01,    7.736843e-02,  1.530244e+01,            14,  2.508077e+01,            14,  1.53380718e+05,  5.32387521e+00,        2,        2,0,0,0
-       92296,   819325280,  6.778879e+01,    7.073124e-02,  4.103368e+01,            14,  3.851804e+01,            14,  5.32708572e+13,  5.19328111e+00,        0,        0,0,0,0
-      101365,   819325281,  1.292208e-01,    7.655828e-02,  1.492723e+01,            14,  2.289657e+01,            14,  6.82135809e+03,  5.62286062e+00,        2,        2,1,0,0
-      104238,   819325282,  3.103936e-01,    9.686121e-02,  1.615716e+01,            14,  2.619635e+01,            14,  1.61615440e+05,  5.15125866e+00,        2,        2,0,0,0
