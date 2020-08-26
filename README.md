@@ -5,7 +5,9 @@ A short documentation of stroopwafel implementation can be found here -> https:/
 
 Make sure you have python3 installed in the system, if not it can be downloaded from <a href="https://www.python.org/downloads/"></a>.
 
-This package has the following dependencies. You can run <code>pip3 install <i>package_name</i></code> for each of them.
+To install this package simply run <code>pip3 install stroopwafel</code>
+
+This package has the following dependencies. They should be automatically installed for you when you install this package.
 <ul>
     <li>numpy</li>
     <li>scipy</li>
