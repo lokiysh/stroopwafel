@@ -1,10 +1,10 @@
 import os
-from utils import *
+from .utils import *
 import shutil
 from scipy.stats import multivariate_normal, entropy
-from distributions import Gaussian
-from classes import Location
-from constants import *
+from .distributions import Gaussian
+from .classes import Location
+from .constants import *
 import sys
 
 class Genais:

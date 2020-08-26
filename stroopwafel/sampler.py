@@ -1,5 +1,5 @@
 import numpy as np
-from constants import *
+from .constants import *
 """
 Defines different kinds of samplers
 """

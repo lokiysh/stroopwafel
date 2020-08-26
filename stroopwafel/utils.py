@@ -2,8 +2,8 @@ import numpy as np
 import os
 import subprocess
 import csv
-import classes
-from constants import *
+from .classes import Location
+from .constants import *
 import math
 
 def generate_grid(locations, filename):
@@ -97,7 +97,7 @@ def read_samples(filename, dimensions, only_hits = False):
             if only_hits and int(sample['is_hit']) == 0:
                 continue
             sample.update((k, float(v)) for k, v in sample.items())
-            locations.append(classes.Location.create_location(dimensions_hash, sample))
+            locations.append(Location.create_location(dimensions_hash, sample))
         return locations
 
 def generate_slurm_file(command, batch_num, output_folder):

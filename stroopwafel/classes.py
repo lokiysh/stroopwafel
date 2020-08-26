@@ -1,4 +1,4 @@
-import sampler as sp
+from . import sampler as sp
 import numpy as np
 
 class Dimension:

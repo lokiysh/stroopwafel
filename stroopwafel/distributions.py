@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from scipy.stats import multivariate_normal
-from classes import Location
+from .classes import Location
 import numpy as np
-from utils import *
+from .utils import *
 import json
-from constants import *
-import sampler as sp
+from .constants import *
+from . import sampler as sp
 
 class NDimensionalDistribution:
     """

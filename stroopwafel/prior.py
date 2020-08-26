@@ -1,5 +1,5 @@
 import numpy as np
-from constants import *
+from .constants import *
 """
 This class defines the birth priors of the dimensions
 """
