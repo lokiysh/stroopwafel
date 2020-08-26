@@ -4,9 +4,9 @@ import os
 import pandas as pd
 import shutil
 import time
-import sys
-sys.path.append('../')
 import numpy as np
+import sys
+sys.path.append('../') #Only required in the test directory for testing purposes
 from stroopwafel import sw, classes, prior, sampler, distributions, constants, utils
 import argparse
 

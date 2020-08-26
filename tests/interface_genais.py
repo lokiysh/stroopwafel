@@ -6,7 +6,7 @@ import shutil
 import time
 import numpy as np
 import sys
-sys.path.append('../')
+sys.path.append('../') #Only required in the test directory for testing purposes
 from stroopwafel import genais, classes, prior, sampler, distributions, constants, utils
 import argparse
 
