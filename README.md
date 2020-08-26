@@ -14,8 +14,8 @@ This package has the following dependencies. They should be automatically instal
     <li>scipy</li>
 </ul>
 
-To test if its installed, go to python3 terminal <code>python3</code>.
-Then <code>import stroopwafel</code> should not throw any errors.
+To test if its installed, go to python3, on the write terminal <code>python3</code>.
+Inside the python prompt, <code>import stroopwafel</code> should not throw any errors.
 
 # Running
 Create an script similar to interface.py in the test directory. Make sure you have the external application executable (such as COMPAS) defined in this script. Provide the other details and functions and run it using <code>python filename.py</code>. 
