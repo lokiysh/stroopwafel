@@ -5,7 +5,9 @@ import pandas as pd
 import shutil
 import time
 import numpy as np
-from stroopwafel import *
+import sys
+sys.path.append('../')
+from stroopwafel import genais, classes, prior, sampler, distributions, constants, utils
 import argparse
 
 parser=argparse.ArgumentParser()
