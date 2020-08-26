@@ -5,7 +5,9 @@ import pandas as pd
 import shutil
 import time
 import numpy as np
-from stroopwafel import *
+import sys
+sys.path.append('../') #Only required in the test directory for testing purposes
+from stroopwafel import sw, classes, prior, sampler, distributions, constants, utils
 import argparse
 
 parser=argparse.ArgumentParser()
@@ -309,22 +311,22 @@ if __name__ == '__main__':
 
     print('TOTAL_NUM_SYSTEMS', TOTAL_NUM_SYSTEMS, 'NUM_CPU_CORES', NUM_CPU_CORES, 'NUM_SYSTEMS_PER_RUN', NUM_SYSTEMS_PER_RUN, 'run_on_helios', run_on_helios)
     # STEP 1 : Create an instance of the Stroopwafel class
-    sw = stroopwafel.Stroopwafel(TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, output_folder, output_filename, debug = debug, run_on_helios = run_on_helios, mc_only = mc_only)
+    sw_object = sw.Stroopwafel(TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, output_folder, output_filename, debug = debug, run_on_helios = run_on_helios, mc_only = mc_only)
 
     #STEP 3: Initialize the stroopwafel object with the user defined functions and create dimensions and initial distribution
     dimensions = create_dimensions()
-    sw.initialize(dimensions, interesting_systems, configure_code_run, rejected_systems, update_properties_method = update_properties)
+    sw_object.initialize(dimensions, interesting_systems, configure_code_run, rejected_systems, update_properties_method = update_properties)
 
     intial_pdf = distributions.InitialDistribution(dimensions)
     #STEP 4: Run the 4 phases of stroopwafel
-    sw.explore(intial_pdf) #Pass in the initial distribution for exploration phase
+    sw_object.explore(intial_pdf) #Pass in the initial distribution for exploration phase
     now = time.time()
 
-    sw.adapt(n_dimensional_distribution_type = distributions.Gaussian) #Adaptaion phase, tell stroopwafel what kind of distribution you would like to create instrumental distributions
+    sw_object.adapt(n_dimensional_distribution_type = distributions.Gaussian) #Adaptaion phase, tell stroopwafel what kind of distribution you would like to create instrumental distributions
     ## Do selection effects
     #selection_effects(sw)
-    sw.refine() #Stroopwafel will draw samples from the adapted distributions
-    sw.postprocess(distributions.Gaussian, only_hits = False) #Run it to create weights, if you want only hits in the output, then make only_hits = True
+    sw_object.refine() #Stroopwafel will draw samples from the adapted distributions
+    sw_object.postprocess(distributions.Gaussian, only_hits = False) #Run it to create weights, if you want only hits in the output, then make only_hits = True
 
     end_time = time.time()
     print ("Total running time = %d seconds" %(end_time - start_time))
