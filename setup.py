@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="stroopwafel-lokisyh",
+    name="stroopwafel",
     version="0.0.1",
     author="Lokesh Khandelwal",
     author_email="lokesh.khandelwal92@gmail.com",
