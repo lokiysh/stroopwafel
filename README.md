@@ -14,7 +14,7 @@ This package has the following dependencies. They should be automatically instal
     <li>scipy</li>
 </ul>
 
-To test if its installed, go to python3, on the write terminal <code>python3</code>.
+To test if its installed, go to python3. On the terminal: <code>python3</code>.
 Inside the python prompt, <code>import stroopwafel</code> should not throw any errors.
 
 # Running
