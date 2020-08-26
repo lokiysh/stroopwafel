@@ -23,6 +23,7 @@ Create an script similar to interface.py in the test directory. Make sure you ha
 Note that stroopwafel is independent of the external application and does not have to reside in the same directory. 
 
 Additionally you can pass in optional arguments in the command line:
+<code>
 optional arguments:
   -h, --help            show this help message and exit
   --num_systems NUM_SYSTEMS
@@ -37,3 +38,4 @@ optional arguments:
                         If we are running on helios (or other slurm) nodes
   --output_filename OUTPUT_FILENAME
                         Output filename
+</code>
