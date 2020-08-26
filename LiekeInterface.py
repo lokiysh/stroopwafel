@@ -5,7 +5,7 @@ import pandas as pd
 import shutil
 import time
 import numpy as np
-from modules import *
+from stroopwafel import *
 import argparse
 
 parser=argparse.ArgumentParser()

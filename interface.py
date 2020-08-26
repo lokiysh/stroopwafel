@@ -5,13 +5,13 @@ import pandas as pd
 import shutil
 import time
 import numpy as np
-from modules import *
+from stroopwafel import *
 import argparse
 
 parser=argparse.ArgumentParser()
-parser.add_argument('--num_systems', help = 'Total number of systems', type = int, default = 100000)
-parser.add_argument('--num_cores', help = 'Number of cores to run in parallel', type = int, default = 50)
-parser.add_argument('--num_per_core', help = 'Number of systems to generate in one core', type = int, default = 1000)
+parser.add_argument('--num_systems', help = 'Total number of systems', type = int, default = 1000)
+parser.add_argument('--num_cores', help = 'Number of cores to run in parallel', type = int, default = 2)
+parser.add_argument('--num_per_core', help = 'Number of systems to generate in one core', type = int, default = 10)
 parser.add_argument('--debug', help = 'If debug of COMPAS is to be printed', type = bool, default = False)
 parser.add_argument('--mc_only', help = 'If run in MC simulation mode only', type = bool, default = False)
 parser.add_argument('--run_on_helios', help = 'If we are running on helios (or other slurm) nodes', type = bool, default = False)
@@ -28,7 +28,7 @@ def create_dimensions():
     OUT:
         As Output, this should return a list containing all the instances of Dimension class.
     """
-    m1 = classes.Dimension('Mass_1', 5, 50, sampler.kroupa, prior.kroupa)
+    m1 = classes.Dimension('Mass_1', 40, 50, sampler.kroupa, prior.kroupa)
     q = classes.Dimension('q', 0.2, 1, sampler.uniform, prior.uniform, should_print = False)
     a = classes.Dimension('Separation', .01, 100, sampler.flat_in_log, prior.flat_in_log)
     #kick_velocity_random_1 = classes.Dimension('Kick_Velocity_Random_1', 0, 1, sampler.uniform, prior.uniform)
@@ -104,7 +104,7 @@ def interesting_systems(batch):
         double_compact_objects.rename(columns = lambda x: x.strip(), inplace = True)
         #Generally, this is the line you would want to change.
         dns = double_compact_objects[np.logical_and(double_compact_objects['Merges_Hubble_Time'] == 1, \
-            np.logical_and(double_compact_objects['Stellar_Type_1'] == 13, double_compact_objects['Stellar_Type_2'] == 13))]
+            np.logical_and(double_compact_objects['Stellar_Type_1'] == 14, double_compact_objects['Stellar_Type_2'] == 14))]
         interesting_systems_seeds = set(dns['SEED'])
         for sample in batch['samples']:
             if sample.properties['SEED'] in interesting_systems_seeds:

@@ -2,5 +2,5 @@
 *~
 *.swp
 *.txt
-Florisinterface.py
-.gitignore
+.*
+

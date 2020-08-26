@@ -59,8 +59,7 @@ class Stroopwafel:
         [location.properties.update({'mixture_weight': 1}) for location in locations]
         if self.num_explored == self.total_num_systems:
             return
-        [location.properties.update({'q_pdf': 0}) for location in locations]
-        n_dimensional_distribution_type.calculate_probability_of_locations_from_distribution(locations, self.adapted_distributions, self.num_batches_in_parallel, self.output_folder, self.output_filename, self.debug, self.run_on_helios)
+        n_dimensional_distribution_type.calculate_probability_of_locations_from_distribution(locations, self.adapted_distributions)
         pi_norm = 1.0 / (1 - self.prior_fraction_rejected)
         q_norm = 1.0 / (1 - self.distribution_rejection_rate)
         fraction_explored = self.num_explored / self.total_num_systems
@@ -124,7 +123,7 @@ class Stroopwafel:
         IN:
             initial_pdf (NDimensionalDistribution) : An instance of NDimensionalDistribution showing how to sample from in the exploration phase
         """
-        self.prior_fraction_rejected = intial_pdf.calculate_rejection_rate(self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
+        self.prior_fraction_rejected = intial_pdf.calculate_rejection_rate(self.update_properties_method, self.rejected_systems_method, self.dimensions)
         print_logs(self.output_folder, "prior_fraction_rejected", self.prior_fraction_rejected)
         while self.should_continue_exploring():
             batches = []
@@ -165,7 +164,7 @@ class Stroopwafel:
                 average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(self.dimensions))
                 self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim)
                 print_distributions(self.output_folder + '/distributions.csv', self.adapted_distributions)
-                self.distribution_rejection_rate = n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
+                self.distribution_rejection_rate = n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.update_properties_method, self.rejected_systems_method, self.dimensions)
                 print_logs(self.output_folder, "distribution_rejection_rate", self.distribution_rejection_rate)
             print ("Adaptation phase finished!")
                 
