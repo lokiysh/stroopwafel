@@ -23,19 +23,19 @@ Create an script similar to interface.py in the test directory. Make sure you ha
 Note that stroopwafel is independent of the external application and does not have to reside in the same directory. 
 
 Additionally you can pass in optional arguments in the command line:
-<code>
-optional arguments:
-  -h, --help            show this help message and exit
+<br/>
+optional arguments:<br/>
+  -h, --help            show this help message and exit<br/>
   --num_systems NUM_SYSTEMS
-                        Total number of systems
+                        Total number of systems<br/>
   --num_cores NUM_CORES
-                        Number of cores to run in parallel
+                        Number of cores to run in parallel<br/>
   --num_per_core NUM_PER_CORE
-                        Number of systems to generate in one core
-  --debug DEBUG         If debug of COMPAS is to be printed
-  --mc_only MC_ONLY     If run in MC simulation mode only
+                        Number of systems to generate in one core <br/>
+  --debug DEBUG         If debug of COMPAS is to be printed <br/>
+  --mc_only MC_ONLY     If run in MC simulation mode only <br/>
   --run_on_helios RUN_ON_HELIOS
-                        If we are running on helios (or other slurm) nodes
+                        If we are running on helios (or other slurm) nodes <br/>
   --output_filename OUTPUT_FILENAME
-                        Output filename
+                        Output filename <br/>
 </code>
