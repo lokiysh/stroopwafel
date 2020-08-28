@@ -112,8 +112,8 @@ def generate_slurm_file(command, batch_num, output_folder):
     """
     slurm_folder = get_or_create_folder(output_folder, 'slurms')
     log_folder = get_or_create_folder(output_folder, 'logs')
-    slurm_file = slurm_folder + "/slurm_" + str(batch_num) + ".sh"
-    log_file = log_folder + "/log_" + str(batch_num) + ".txt"
+    slurm_file = os.path.join(slurm_folder, "slurm_" + str(batch_num) + ".sh")
+    log_file = os.path.join(log_folder, "log_" + str(batch_num) + ".txt")
     writer = open(slurm_file, 'w')
     writer.write("#!/bin/bash\n")
     writer.write("#SBATCH --mem-per-cpu=1024\n")
@@ -146,7 +146,7 @@ def run_code(command, batch_num, output_folder, debug = False, run_on_helios = T
             command_to_run = "sbatch -W -Q " + slurm_file
         else:
             log_folder = get_or_create_folder(output_folder, 'logs')
-            log_file = log_folder + "/log_" + str(batch_num) + ".txt"
+            log_file = os.path.join(log_folder, "log_" + str(batch_num) + ".txt")
             command_to_run = command_to_run + " > " + log_file
         process = subprocess.Popen(command_to_run, shell = True, stdout = stdout, stderr = stderr)
         return process
@@ -162,7 +162,7 @@ def get_slurm_output(output_folder, batch_num):
     """
     try:
         log_folder = os.path.join(output_folder, 'logs')
-        log_file = log_folder + "/log_" + str(batch_num) + ".txt"
+        log_file = os.path.join(log_folder, "log_" + str(batch_num) + ".txt")
         with open(log_file) as f:
             return_list = [float(line.rstrip()) for line in f]
             return return_list
@@ -194,7 +194,7 @@ def print_distributions(filename, distributions):
             writer.writerow(current_dict)
 
 def print_logs(output_folder, log_string, log_value):
-    with open(output_folder + '/log.txt', 'a') as file:
+    with open(os.path.join(output_folder, 'log.txt'), 'a') as file:
         file.write("%s = %f\n"%(log_string, log_value))
 
 def get_zams_radius(mass, metallicity):

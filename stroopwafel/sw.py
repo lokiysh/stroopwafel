@@ -84,7 +84,7 @@ class Stroopwafel:
                 hits = self.interesting_systems_method(batch)
             if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems or returncode < 0:
                 #This batch is not needed anymore, delete the folder
-                shutil.rmtree(self.output_folder + '/batch_' + str(batch['number']))
+                shutil.rmtree(os.path.join(self.output_folder, 'batch_' + str(batch['number'])))
                 self.batch_num = self.batch_num - 1
                 continue
             self.num_hits += hits
@@ -163,7 +163,7 @@ class Stroopwafel:
                 [location.transform_variables_to_new_scales() for location in hits]
                 average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(self.dimensions))
                 self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim)
-                print_distributions(self.output_folder + '/distributions.csv', self.adapted_distributions)
+                print_distributions(os.path.join(self.output_folder, 'distributions.csv'), self.adapted_distributions)
                 self.distribution_rejection_rate = n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.update_properties_method, self.rejected_systems_method, self.dimensions)
                 print_logs(self.output_folder, "distribution_rejection_rate", self.distribution_rejection_rate)
             print ("Adaptation phase finished!")

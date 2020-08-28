@@ -72,9 +72,9 @@ def configure_code_run(batch):
         Additionally one must also store the grid_filename in the batch so that the grid file is created
     """
     batch_num = batch['number']
-    grid_filename = output_folder + '/grid_' + str(batch_num) + '.csv'
+    grid_filename = os.path.join(output_folder, 'grid_' + str(batch_num) + '.csv')
     output_container = 'batch_' + str(batch_num)
-    compas_args = [compas_executable, "--grid", grid_filename, '--outputPath', output_folder, '--logfile-delimiter', 'COMMA', '--output-container', output_container, '--random-seed', np.random.randint(2, 2**63 - 1)]
+    compas_args = [compas_executable, "--grid", '"' + grid_filename + '"', '--outputPath', '"' + output_folder + '"', '--logfile-delimiter', 'COMMA', '--output-container', output_container, '--random-seed', np.random.randint(2, 2**63 - 1)]
     for params in extra_params:
         compas_args.extend(params.split("="))
     batch['grid_filename'] = grid_filename

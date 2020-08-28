@@ -177,7 +177,7 @@ class Genais:
                 hits = self.interesting_systems_method(batch)
             if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems or returncode < 0:
                 #This batch is not needed anymore, delete the folder
-                shutil.rmtree(self.output_folder + '/batch_' + str(batch['number']))
+                shutil.rmtree(os.path.join(self.output_folder, 'batch_' + str(batch['number'])))
                 self.batch_num = self.batch_num - 1
                 continue
             self.num_hits += hits
