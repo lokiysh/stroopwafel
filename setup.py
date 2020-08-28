@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="stroopwafel",
-    version="0.0.1",
+    version="0.0.2",
     author="Lokesh Khandelwal",
     author_email="lokesh.khandelwal92@gmail.com",
     description="A python package for STROOPWAFEL and GenAIS algorithms",
