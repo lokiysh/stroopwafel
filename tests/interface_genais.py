@@ -91,8 +91,7 @@ def interesting_systems(batch):
     """
     try:
         folder = os.path.join(output_folder, batch['output_container'])
-        shutil.move(batch['grid_filename'], folder + '/grid_' + str(batch['number']) + '.csv')
-        system_parameters = pd.read_csv(folder + '/BSE_System_Parameters.csv', skiprows = 2)
+        system_parameters = pd.read_csv(os.path.join(folder, 'BSE_System_Parameters.csv'), skiprows = 2)
         system_parameters.rename(columns = lambda x: x.strip(), inplace = True)
         seeds = system_parameters['SEED']
         for index, sample in enumerate(batch['samples']):
@@ -100,7 +99,7 @@ def interesting_systems(batch):
             sample.properties['SEED'] = seed
             sample.properties['is_hit'] = 0
             sample.properties['batch'] = batch['number']
-        double_compact_objects = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
+        double_compact_objects = pd.read_csv(os.path.join(folder, 'BSE_Double_Compact_Objects.csv'), skiprows = 2)
         double_compact_objects.rename(columns = lambda x: x.strip(), inplace = True)
         #Generally, this is the line you would want to change.
         dns = double_compact_objects[np.logical_and(double_compact_objects['Stellar_Type_1'] == 14, double_compact_objects['Stellar_Type_2'] == 14)]

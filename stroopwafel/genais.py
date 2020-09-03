@@ -65,8 +65,11 @@ class Genais:
         IN:
             initial_pdf (NDimensionalDistribution) : An instance of NDimensionalDistribution showing how to sample from in the exploration phase
         """
-        self.prior_fraction_rejected = intial_pdf.calculate_rejection_rate(self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
-        print_logs(self.output_folder, "prior_fraction_rejected", self.prior_fraction_rejected)
+        if not self.mc_only:
+            self.prior_fraction_rejected = intial_pdf.calculate_rejection_rate(self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
+            print_logs(self.output_folder, "prior_fraction_rejected", self.prior_fraction_rejected)
+        else:
+            self.prior_fraction_rejected = 0
         while self.should_continue_exploring():
             batches = []
             for batch in range(self.num_batches_in_parallel):
@@ -79,11 +82,12 @@ class Genais:
                 [location.properties.update({'gaussian': -1}) for location in locations]
                 if self.update_properties_method != None:
                     self.update_properties_method(locations, self.dimensions)
-                self.rejected_systems_method(locations, self.dimensions)
-                locations[:] = [location for location in locations if location.properties['is_rejected'] == 0]
+                if self.rejected_systems_method != None:
+                    self.rejected_systems_method(locations, self.dimensions)
+                locations[:] = [location for location in locations if location.properties.get('is_rejected', 0) == 0]
                 np.random.shuffle(locations)
                 locations = locations[:self.num_samples_per_batch]
-                [location.properties.pop('is_rejected') for location in locations]
+                [location.properties.pop('is_rejected', None) for location in locations]
                 current_batch['samples'] = locations
                 command = self.configure_code_run(current_batch)
                 generate_grid(locations, current_batch['grid_filename'])
@@ -91,11 +95,12 @@ class Genais:
                 batches.append(current_batch)
                 self.batch_num = self.batch_num + 1
             self.process_batches(batches, True)
-        print ("\nExploratory phase finished, found %d hits out of %d explored. Rate = %.6f (fexpl = %.4f)" %(self.num_hits, self.num_explored, self.num_hits / self.num_explored, self.fraction_explored))
         self.num_hits_exploratory = self.num_hits
         print_logs(self.output_folder, "num_explored", self.num_explored)
         if self.mc_only:
             exit()
+        else:
+            print ("\nExploratory phase finished, found %d hits out of %d explored. Rate = %.6f (fexpl = %.4f)" %(self.num_hits, self.num_explored, self.num_hits / self.num_explored, self.fraction_explored))
 
     def adapt(self, n_dimensional_distribution_type):
         """
@@ -140,11 +145,12 @@ class Genais:
                     [location.revert_variables_to_original_scales() for location in locations_ref]
                     if self.update_properties_method != None:
                         self.update_properties_method(locations_ref, self.dimensions)
-                    self.rejected_systems_method(locations_ref, self.dimensions)
-                    locations_ref[:] = [location for location in locations_ref if location.properties['is_rejected'] == 0]
+                    if self.rejected_systems_method != None:
+                        self.rejected_systems_method(locations_ref, self.dimensions)
+                    locations_ref[:] = [location for location in locations_ref if location.properties.get('is_rejected', 0) == 0]
                     np.random.shuffle(locations_ref)
                     locations_ref = locations_ref[:self.num_samples_per_batch]
-                    [location.properties.pop('is_rejected') for location in locations_ref]
+                    [location.properties.pop('is_rejected', None) for location in locations_ref]
                     current_batch['samples'] = locations_ref
                     [location.properties.update({'generation': generation + 1}) for location in locations_ref]
                     samples.extend(locations_ref)
@@ -172,8 +178,11 @@ class Genais:
         for batch in batches:
             if batch['process']:
                 returncode = batch['process'].wait()
+            folder = os.path.join(self.output_folder, batch['output_container'])
+            shutil.move(batch['grid_filename'], os.path.join(folder, 'grid_' + str(batch['number']) + '.csv'))
+            [location.properties.update({'is_hit': 0}) for location in batch['samples']]
             hits = 0
-            if returncode >= 0:
+            if returncode >= 0 and self.interesting_systems_method is not None:
                 hits = self.interesting_systems_method(batch)
             if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems or returncode < 0:
                 #This batch is not needed anymore, delete the folder
