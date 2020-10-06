@@ -66,7 +66,7 @@ class Genais:
             initial_pdf (NDimensionalDistribution) : An instance of NDimensionalDistribution showing how to sample from in the exploration phase
         """
         if not self.mc_only:
-            self.prior_fraction_rejected = intial_pdf.calculate_rejection_rate(self.num_batches_in_parallel, self.output_folder, self.debug, self.run_on_helios)
+            self.prior_fraction_rejected = intial_pdf.calculate_rejection_rate(self.update_properties_method, self.rejected_systems_method, self.dimensions)
             print_logs(self.output_folder, "prior_fraction_rejected", self.prior_fraction_rejected)
         else:
             self.prior_fraction_rejected = 0
