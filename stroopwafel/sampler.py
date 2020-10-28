@@ -44,6 +44,46 @@ def flat(num_samples, **kwargs):
     x = kwargs['x']
     return np.ones(num_samples) * x
 
+def linear(num_samples=1, **kwargs):
+    """
+    method to sample from a linear distribution, 
+    a right triangle that peaks on one side and drops 
+    to zero at the other (special case of triangular).
+    IN:
+        num_samples : number of samples to be returned
+        max (float) : location of the peak
+        min (float) : location of the x-intercept
+    OUT:
+        a list of num_samples zeros
+    """
+    x = kwargs['max']
+    y = kwargs['min']
+
+    if x == y:
+        raise ZeroDivisionError("Bounds for linear distribution must be distinct")
+    elif x > y:
+        return triangular(mode=x, left=x, right=y, size=num_samples)
+    else: # x < y
+        return triangular(mode=x, left=y, right=x, size=num_samples)
+
+def triangular(num_samples=1, **kwargs):
+    """
+    method to sample from a triangular distribution
+    IN:
+        num_samples : number of samples to be returned
+        peak (float) : location of the peak
+        left (float) : location of the x-intercept
+        right (float) : location of the x-intercept
+
+    OUT:
+        a list of num_samples zeros
+    """
+    peak = kwargs['peak']
+    left = kwargs['left']
+    right = kwargs['right']
+    return np.random.triangular(mode=peak, left=left, right=right, size=num_samples)
+
+
 def kroupa(num_samples = 1, **kwargs):
     """
     method to run a kroupa sampling for the range [x, y)
