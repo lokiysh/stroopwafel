@@ -17,6 +17,10 @@ def uniform(num_samples, **kwargs):
     y = kwargs['y']
     return np.random.uniform(x, y, num_samples)
 
+def flat(num_samples, **kwargs):
+    """ Synonym for Uniform """
+    return uniform(num_samples, kwargs)
+
 def flat_in_log(num_samples, **kwargs):
     """
     method to run a flat_in_log sampling for the range[x, y]
@@ -31,18 +35,6 @@ def flat_in_log(num_samples, **kwargs):
     x = kwargs['x']
     y = kwargs['y']
     return np.random.uniform(x, y, num_samples)
-
-def flat(num_samples, **kwargs):
-    """
-    method to run a sampling for a flat distribution
-    IN:
-        num_samples : number of samples to be returned
-        x (float) : The flat value for sampling
-    OUT:
-        a list of num_samples zeros
-    """
-    x = kwargs['x']
-    return np.ones(num_samples) * x
 
 def linear(num_samples=1, **kwargs):
     """
