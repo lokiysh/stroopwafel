@@ -26,15 +26,14 @@ def flat_in_log(num_samples, **kwargs):
     method to run a flat_in_log sampling for the range[x, y]
     IN:
         num_samples : number of samples to be returned
-        x (float) : starting value
-        y (float) : ending value
+        x (float) : starting value, in normal units
+        y (float) : ending value, in normal units
     OUT:
         a list of samples in the range [x, y) considering power law distribution
     """
-    #This assumes that the values x and y are already the log values
-    x = kwargs['x']
-    y = kwargs['y']
-    return np.random.uniform(x, y, num_samples)
+    x = np.log(kwargs['x'])
+    y = np.log(kwargs['y'])
+    return np.exp(np.random.uniform(x, y, num_samples))
 
 def linear(num_samples=1, **kwargs):
     """
