@@ -18,10 +18,11 @@ class Dimension:
         self.sampler = sampler
         self.prior = prior
         self.should_print = should_print
-        if self.sampler.__name__ == sp.flat_in_log.__name__:
-            self.min_value = np.log10(min_value)
-            self.max_value = np.log10(max_value)
-        elif self.sampler.__name__ == sp.uniform_in_sine.__name__:
+        #if self.sampler.__name__ == sp.flat_in_log.__name__:
+        #    self.min_value = min_value
+        #    self.max_value = max_value
+        #elif self.sampler.__name__ == sp.uniform_in_sine.__name__:
+        if self.sampler.__name__ == sp.uniform_in_sine.__name__:
             self.min_value = -1
             self.max_value = 1
         elif self.sampler.__name__ == sp.uniform_in_cosine.__name__:
@@ -98,9 +99,10 @@ class Location:
     """
     def revert_variables_to_original_scales(self):
         for dimension, value in self.dimensions.items():
-            if dimension.sampler.__name__ == sp.flat_in_log.__name__:
-                self.dimensions[dimension] = np.power(10, value)
-            elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
+            #if dimension.sampler.__name__ == sp.flat_in_log.__name__:
+            #    self.dimensions[dimension] = np.power(10, value)
+            #elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
+            if dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
                 self.dimensions[dimension] = np.arcsin(value)
             elif dimension.sampler.__name__ == sp.uniform_in_cosine.__name__:
                 self.dimensions[dimension] = np.arccos(value) - np.pi / 2
@@ -110,9 +112,10 @@ class Location:
     """
     def transform_variables_to_new_scales(self):
         for dimension, value in self.dimensions.items():
-            if dimension.sampler.__name__ == sp.flat_in_log.__name__:
-                self.dimensions[dimension] = np.log10(value)
-            elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
+            #if dimension.sampler.__name__ == sp.flat_in_log.__name__:
+            #   self.dimensions[dimension] = np.log10(value)
+            #elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
+            if dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
                 self.dimensions[dimension] = np.sin(value)
             elif dimension.sampler.__name__ == sp.uniform_in_cosine.__name__:
                 self.dimensions[dimension] = np.cos(value + np.pi / 2)
