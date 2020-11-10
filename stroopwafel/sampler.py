@@ -31,7 +31,6 @@ def flat_in_log(num_samples, **kwargs):
     OUT:
         a list of samples in the range [x, y) considering power law distribution
     """
-    print("butt")
     x = np.log(kwargs['x'])
     y = np.log(kwargs['y'])
     return np.exp(np.random.uniform(x, y, num_samples))
