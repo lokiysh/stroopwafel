@@ -6,6 +6,7 @@ from .classes import Location
 from .constants import *
 import math
 
+# RTW TODO: need to remove the header, and add into the grid the command line option for each command
 def generate_grid(locations, filename):
     """
     Function which generated a txt file with the locations specified
