@@ -74,12 +74,8 @@ def update_properties(locations, dimensions):
         location.properties['--kick-theta-1'] = np.arccos(np.random.uniform(-1, 1, 1)[0]) - np.pi / 2   
         location.properties['--kick-phi-1'] = np.random.uniform(0, 2 * np.pi, 1)[0]
         location.properties['--kick-phi-2'] = np.random.uniform(0, 2 * np.pi, 1)[0]
-        location.properties['Kick_Mean_Anomaly_1'] = np.random.uniform(0, 2 * np.pi, 1)[0]
-        location.properties['Kick_Mean_Anomaly_2'] = np.random.uniform(0, 2 * np.pi, 1)[0]
-
-
-
-
+        location.properties['--kick-mean-anomaly-1'] = np.random.uniform(0, 2 * np.pi, 1)[0]
+        location.properties['--kick-mean-anomaly-2'] = np.random.uniform(0, 2 * np.pi, 1)[0]
 
 
 
