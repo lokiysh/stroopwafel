@@ -3,14 +3,15 @@
 import os, sys
 import pandas as pd
 import shutil
-import time
+#import time
 import numpy as np
 sys.path.append('../../') #Only required in the test directory for testing purposes
-from stroopwafel_dev import sw, classes, prior, sampler, distributions, constants, utils
+from stroopwafel_dev import sw, classes, prior, sampler, distributions, constants, utils, run_sw
 import argparse
 
 # TODO fix issues with adaptive sampling
 # TODO add in functionality for alternative pythonSubmit names and locations
+# TODO add seed to grid files
 
 #######################################################
 ### 
@@ -24,7 +25,7 @@ usePythonSubmit = False #If false, use stroopwafel defaults
 
 ### Set default stroopwafel inputs - these are overwritten by any command-line arguments
 
-compas_executable = os.path.join(os.environ.get('COMPAS_ROOT_DIR'), 'src/COMPAS')   # Location of the executable      # Note: overrides pythonSubmit value
+executable = os.path.join(os.environ.get('COMPAS_ROOT_DIR'), 'src/COMPAS')   # Location of the executable      # Note: overrides pythonSubmit value
 num_systems = 1000                  # Number of binary systems to evolve                                              # Note: overrides pythonSubmit value
 output_folder = 'output/'           # Location of output folder (relative to cwd)                                     # Note: overrides pythonSubmit value
 random_seed_base = 0                # The initial random seed to increment from                                       # Note: overrides pythonSubmit value
@@ -50,12 +51,8 @@ def create_dimensions():
     q = classes.Dimension('q', 0.1, 1, sampler.uniform, prior.uniform, should_print = False)
     a = classes.Dimension('--semi-major-axis', .1, 1000, sampler.flat_in_log, prior.flat_in_log)
     kick_magnitude_1 = classes.Dimension('--kick-magnitude-1', 0, 500, sampler.uniform, prior.uniform)
-    kick_theta_1 = classes.Dimension('--kick-theta-1', -np.pi / 2, np.pi / 2, sampler.uniform_in_cosine, prior.uniform_in_cosine)
-    kick_phi_1 = classes.Dimension('--kick-phi-1', 0, 2 * np.pi, sampler.uniform, prior.uniform)
     kick_magnitude_2 = classes.Dimension('--kick-magnitude-2', 0, 500, sampler.uniform, prior.uniform)
-    kick_theta_2 = classes.Dimension('--kick-theta-2', -np.pi / 2, np.pi / 2, sampler.uniform_in_cosine, prior.uniform_in_cosine)
-    kick_phi_2 = classes.Dimension('--kick-phi-2', 0, 2 * np.pi, sampler.uniform, prior.uniform)
-    return [m1, q, a, kick_magnitude_1, kick_theta_1, kick_phi_1, kick_magnitude_2, kick_theta_2, kick_phi_2]
+    return [m1, q, a, kick_magnitude_1, kick_magnitude_2 ]
 
 def update_properties(locations, dimensions):
     """
@@ -73,47 +70,18 @@ def update_properties(locations, dimensions):
         location.properties['--initial-mass-2'] = location.dimensions[m1] * location.dimensions[q]
         location.properties['--metallicity'] = constants.METALLICITY_SOL
         location.properties['--eccentricity'] = 0
-        #location.properties['Kick_Mean_Anomaly_1'] = np.random.uniform(0, 2 * np.pi, 1)[0]
-        #location.properties['Kick_Mean_Anomaly_2'] = np.random.uniform(0, 2 * np.pi, 1)[0]
+        location.properties['--kick-theta-2'] = np.arccos(np.random.uniform(-1, 1, 1)[0]) - np.pi / 2   
+        location.properties['--kick-theta-1'] = np.arccos(np.random.uniform(-1, 1, 1)[0]) - np.pi / 2   
+        location.properties['--kick-phi-1'] = np.random.uniform(0, 2 * np.pi, 1)[0]
+        location.properties['--kick-phi-2'] = np.random.uniform(0, 2 * np.pi, 1)[0]
+        location.properties['Kick_Mean_Anomaly_1'] = np.random.uniform(0, 2 * np.pi, 1)[0]
+        location.properties['Kick_Mean_Anomaly_2'] = np.random.uniform(0, 2 * np.pi, 1)[0]
 
 
 
 
 
-#################################################################################
-#################################################################################
-###                                                                           ###
-###         USER SHOULD NOT SET ANYTHING BELOW THIS LINE                      ###
-###                                                                           ###
-#################################################################################
-#################################################################################
 
-
-
-
-
-def configure_code_run(batch):
-    """
-    This function tells stroopwafel what program to run, along with its arguments.
-    IN:
-        batch(dict): This is a dictionary which stores some information about one of the runs. It has an number key which stores the unique id of the run
-            It also has a subprocess which will run under the key process. Rest, it depends on the user. User is free to store any information they might need later 
-            for each batch run in this dictionary. For example, here I have stored the 'output_container' and 'grid_filename' so that I can read them during discovery of interesting systems below
-    OUT:
-        compas_args (list(String)) : This defines what will run. It should point to the executable file along with the arguments.
-        Additionally one must also store the grid_filename in the batch so that the grid file is created
-    """
-    batch_num = batch['number']
-    grid_filename = os.path.join(output_folder, 'grid_' + str(batch_num) + '.csv')
-    output_container = 'batch_' + str(batch_num)
-    random_seed = random_seed_base + batch_num*NUM_SYSTEMS_PER_RUN  # ensure that random numbers are not reused across batches
-    compas_args = [compas_executable, '--grid', grid_filename, '--output-container', output_container, '--random-seed' , random_seed]
-    [compas_args.extend([key, val]) for key, val in commandOptions.items()]
-    for params in extra_params:
-        compas_args.extend(params.split("="))
-    batch['grid_filename'] = grid_filename
-    batch['output_container'] = output_container
-    return compas_args
 
 def interesting_systems(batch):
     """
@@ -215,7 +183,6 @@ if __name__ == '__main__':
     parser.add_argument('--output_folder', help = 'Output folder name', default = output_folder)
     namespace, extra_params = parser.parse_known_args()
 
-    start_time = time.time()
     #Define the parameters to the constructor of stroopwafel
     TOTAL_NUM_SYSTEMS = namespace.num_systems #total number of systems you want in the end
     NUM_CPU_CORES = namespace.num_cores #Number of cpu cores you want to run in parellel
@@ -252,35 +219,41 @@ if __name__ == '__main__':
             print("Invalid pythonSubmit file, using default stroopwafel options")
             usePythonSubmit = False
     
+    run_sw.run_stroopwafel(output_folder, output_filename, random_seed_base, 
+        executable, commandOptions, extra_params, 
+        TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, 
+        debug , run_on_hpc, mc_only,
+        create_dimensions, update_properties, interesting_systems,
+        selection_effects, rejected_systems)
 
-    print("Output folder is: ", output_folder)
-    if os.path.exists(output_folder):
-        command = input ("The output folder already exists. If you continue, I will remove all its content. Press (Y/N)\n")
-        if (command == 'Y'):
-            shutil.rmtree(output_folder)
-        else:
-            exit()
-    os.makedirs(output_folder)
-
-
-    # STEP 2 : Create an instance of the Stroopwafel class
-    sw_object = sw.Stroopwafel(TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, output_folder, output_filename, debug = debug, run_on_helios = run_on_hpc, mc_only = mc_only)
-
-
-    # STEP 3: Initialize the stroopwafel object with the user defined functions and create dimensions and initial distribution
-    dimensions = create_dimensions()
-    #sw_object.initialize(dimensions, interesting_systems, configure_code_run, rejected_systems, update_properties_method = update_properties)
-    sw_object.initialize(dimensions, None, configure_code_run, None, update_properties_method = update_properties)
-
-
-    intial_pdf = distributions.InitialDistribution(dimensions)
-    # STEP 4: Run the 4 phases of stroopwafel
-    sw_object.explore(intial_pdf) #Pass in the initial distribution for exploration phase
-    #sw_object.adapt(n_dimensional_distribution_type = distributions.Gaussian) #Adaptaion phase, tell stroopwafel what kind of distribution you would like to create instrumental distributions
-    ## Do selection effects
-    #selection_effects(sw)
-    #sw_object.refine() #Stroopwafel will draw samples from the adapted distributions
-    #sw_object.postprocess(distributions.Gaussian, only_hits = False) #Run it to create weights, if you want only hits in the output, then make only_hits = True
-
-    end_time = time.time()
-    print ("Total running time = %d seconds" %(end_time - start_time))
+#    print("Output folder is: ", output_folder)
+#    if os.path.exists(output_folder):
+#        command = input ("The output folder already exists. If you continue, I will remove all its content. Press (Y/N)\n")
+#        if (command == 'Y'):
+#            shutil.rmtree(output_folder)
+#        else:
+#            exit()
+#    os.makedirs(output_folder)
+#
+#
+#    # STEP 2 : Create an instance of the Stroopwafel class
+#    sw_object = sw.Stroopwafel(TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, output_folder, output_filename, debug = debug, run_on_helios = run_on_hpc, mc_only = mc_only)
+#
+#
+#    # STEP 3: Initialize the stroopwafel object with the user defined functions and create dimensions and initial distribution
+#    dimensions = create_dimensions()
+#    #sw_object.initialize(dimensions, interesting_systems, configure_code_run, rejected_systems, update_properties_method = update_properties)
+#    sw_object.initialize(dimensions, None, configure_code_run, None, update_properties_method = update_properties)
+#
+#
+#    intial_pdf = distributions.InitialDistribution(dimensions)
+#    # STEP 4: Run the 4 phases of stroopwafel
+#    sw_object.explore(intial_pdf) #Pass in the initial distribution for exploration phase
+#    #sw_object.adapt(n_dimensional_distribution_type = distributions.Gaussian) #Adaptaion phase, tell stroopwafel what kind of distribution you would like to create instrumental distributions
+#    ## Do selection effects
+#    #selection_effects(sw)
+#    #sw_object.refine() #Stroopwafel will draw samples from the adapted distributions
+#    #sw_object.postprocess(distributions.Gaussian, only_hits = False) #Run it to create weights, if you want only hits in the output, then make only_hits = True
+#
+#    end_time = time.time()
+#    print ("Total running time = %d seconds" %(end_time - start_time))

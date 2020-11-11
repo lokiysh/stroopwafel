@@ -228,3 +228,4 @@ class Stroopwafel:
         print_logs(self.output_folder, "rate_of_hits", stroopwafel_rate)
         print_logs(self.output_folder, "uncertainity", uncertainity)
         
+
