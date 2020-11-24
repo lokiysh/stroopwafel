@@ -37,6 +37,9 @@ run_on_hpc = False                  # Run on slurm based cluster HPC
 output_filename = 'samples.csv'     # output filename for the stroopwafel samples
 debug = True                        # show COMPAS output/errors
 
+### Default options for interesting systems when using AIS: ['BBH', 'DNS', 'BHNS']
+sys_int = 'BBH'
+
 def create_dimensions():
     """
     This Function that will create all the dimensions for stroopwafel, a dimension is basically one of the variables you want to sample
@@ -138,8 +141,17 @@ def interesting_systems(batch):
         double_compact_objects = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
         double_compact_objects.rename(columns = lambda x: x.strip(), inplace = True)
         #Generally, this is the line you would want to change.
-        dns = double_compact_objects[np.logical_and(double_compact_objects['Merges_Hubble_Time'] == 1, \
-            np.logical_and(double_compact_objects['Stellar_Type(1)'] == 14, double_compact_objects['Stellar_Type(2)'] == 14))]
+        st1 = double_compact_objects['Stellar_Type(1)']
+        st2 = double_compact_objects['Stellar_Type(2)']
+        if sys_int == 'BBH':
+            dco_mask = np.logical_and(st1 == 14, st2 == 14)
+        if sys_int == 'DNS':
+            dco_mask = np.logical_and(st1 == 13, st2 == 13)
+        if sys_int == 'BHNS':
+            dco_mask = np.logical_and(st1 == 14, st2 == 13) | np.logical_and(st1 == 13, st2 == 14)
+        merge_mask = double_compact_objects['Merges_Hubble_Time'] == 1
+        dns = double_compact_objects[np.logical_and(merge_mask, dco_mask)]
+
         interesting_systems_seeds = set(dns['SEED'])
         for sample in batch['samples']:
             if sample.properties['SEED'] in interesting_systems_seeds:
