@@ -14,6 +14,10 @@ class Stroopwafel:
         self.run_on_helios = run_on_helios
         self.mc_only = mc_only
 
+        self.mixture_weight = []
+        if self.mc_only:
+            self.mixture_weight = [1]*self.total_num_systems
+
     def update_fraction_explored(self):
         """
         Function which updates the fraction of region which is already explored
@@ -227,4 +231,4 @@ class Stroopwafel:
         print ("Rate of hits = %f with uncertainity = %f" %(stroopwafel_rate, uncertainity))
         print_logs(self.output_folder, "rate_of_hits", stroopwafel_rate)
         print_logs(self.output_folder, "uncertainity", uncertainity)
-        
+        self.mixture_weight = [location.properties['mixture_weight'] for location in locations]

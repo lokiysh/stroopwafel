@@ -99,7 +99,12 @@ class Gaussian(NDimensionalDistribution):
             if self.rejection_rate == 1:
                 return ([], [])
             num_samples = int(2 * np.ceil(num_samples / (1 - self.rejection_rate)))
+        num_samples_min = num_samples
         num_samples = int(num_samples * self.biased_weight)
+        if num_samples < int(num_samples_min/4.):
+            num_samples = int(num_samples_min/4.)
+        #print(np.sum(num_samples))
+        #print('samples', num_samples)
         mask = np.ones(num_samples, dtype = bool)
         current_samples = multivariate_normal.rvs(mean = self.mean.to_array(), cov = self.cov, size = num_samples)
         headers = sorted(dimensions, key = lambda d: d.name)
