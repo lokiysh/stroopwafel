@@ -1,4 +1,5 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
+
 import os, sys
 import pandas as pd
 import shutil
@@ -25,14 +26,15 @@ usePythonSubmit = False #If false, use stroopwafel defaults
 ### Set default stroopwafel inputs - these are overwritten by any command-line arguments
 
 executable = os.path.join(os.environ.get('COMPAS_ROOT_DIR'), 'src/COMPAS')   # Location of the executable      # Note: overrides pythonSubmit value
-num_systems = 100000                # Number of binary systems to evolve                                              # Note: overrides pythonSubmit value
-output_folder = '/home/rwillcox/output_oz101/remnant_mass_comparisons2/belczynski/'    # Location of output folder (relative to cwd)                                     # Note: overrides pythonSubmit value
+num_systems = 1000                  # Number of binary systems to evolve                                              # Note: overrides pythonSubmit value
+#output_folder = '/home/rwillcox/output_oz101/nsk_PE2/run' + str(int(num_systems/1000)) + 'k/'             # Location of output folder (relative to cwd)                                     # Note: overrides pythonSubmit value
+output_folder = 'testout'  # Location of output folder (relative to cwd)                                     # Note: overrides pythonSubmit value
 random_seed_base = 0                # The initial random seed to increment from                                       # Note: overrides pythonSubmit value
 
-num_cores = 100                     # Number of cores to parallelize over 
+num_cores = 100                       # Number of cores to parallelize over 
+num_per_core = int(num_systems/num_cores) # Number of binaries per batch
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
 run_on_hpc = True                   # Run on slurm based cluster HPC
-num_per_core = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
 
 output_filename = 'samples.csv'     # output filename for the stroopwafel samples
 debug = True                        # show COMPAS output/errors
@@ -48,7 +50,7 @@ def create_dimensions():
     """
     m1 = classes.Dimension('--initial-mass-1', 5, 50, sampler.kroupa, prior.kroupa)
     q = classes.Dimension('q', 0.1, 1, sampler.uniform, prior.uniform, should_print = False)
-    a = classes.Dimension('--semi-major-axis', .1, 1000, sampler.flat_in_log, prior.flat_in_log) 
+    a = classes.Dimension('--semi-major-axis', .1, 1000, sampler.flat_in_log, prior.flat_in_log)
     return [m1, q, a ]
 
 def update_properties(locations, dimensions):
@@ -67,6 +69,12 @@ def update_properties(locations, dimensions):
         location.properties['--initial-mass-2'] = location.dimensions[m1] * location.dimensions[q]
         location.properties['--metallicity'] = constants.METALLICITY_SOL
         location.properties['--eccentricity'] = 0
+
+        location.properties['--kick-magnitude-1'] = np.random.triangular(left=0, right=2000, mode=0) 
+        location.properties['--kick-magnitude-2'] = np.random.triangular(left=0, right=2000, mode=0) 
+        location.properties['--mass-sn-1'] = np.random.uniform(1.2, 2.5)
+        location.properties['--mass-sn-2'] = np.random.uniform(1.2, 2.5)
+
         location.properties['--kick-theta-2'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
         location.properties['--kick-theta-1'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
         location.properties['--kick-phi-1'] = np.random.uniform(0, 2 * np.pi)
