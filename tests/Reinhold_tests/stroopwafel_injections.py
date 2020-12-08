@@ -72,8 +72,8 @@ def update_properties(locations, dimensions):
 
         location.properties['--kick-magnitude-1'] = np.random.triangular(left=0, right=2000, mode=0) 
         location.properties['--kick-magnitude-2'] = np.random.triangular(left=0, right=2000, mode=0) 
-        location.properties['--mass-sn-1'] = np.random.uniform(1.2, 2.5)
-        location.properties['--mass-sn-2'] = np.random.uniform(1.2, 2.5)
+        location.properties['--mass-sn-1'] = np.random.uniform(1.2, 3.0)
+        location.properties['--mass-sn-2'] = np.random.uniform(1.2, 3.0)
 
         location.properties['--kick-theta-2'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
         location.properties['--kick-theta-1'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
