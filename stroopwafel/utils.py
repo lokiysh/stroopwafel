@@ -15,24 +15,22 @@ def generate_grid(locations, filename):
     OUT:
         generates file with name filename with the given locations and saves to the disk
     """
-    header = []
     grid = []
     for location in locations:
         current_location = []
+        global RANDOM_SEED
+        current_location.append('--random-seed ' + str(RANDOM_SEED))
+        RANDOM_SEED += 1
         for key, value in location.dimensions.items():
             if key.should_print:
-                if len(grid) == 0:
-                    header.append(key.name)
-                current_location.append(value)
+                current_location.append(key.name + ' ' + str(value))
         for key, value in location.properties.items():
             if key in ['generation', 'gaussian']:
                 continue
-            if len(grid) == 0:
-                header.append(key)
-            current_location.append(value)
+            current_location.append(key + ' ' + str(value))
         grid.append(current_location)
-    DELIMITER = ', '
-    np.savetxt(filename, grid, fmt = "%s", delimiter = DELIMITER, header = DELIMITER.join(header), comments = '')
+    DELIMITER = ' '
+    np.savetxt(filename, grid, fmt = "%s", delimiter = DELIMITER, comments = '')
 
 #copied from stack overflow
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '|', autosize = False):
