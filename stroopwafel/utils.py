@@ -3,7 +3,7 @@ import os
 import subprocess
 import csv
 from .classes import Location
-from .constants import *
+from . import constants 
 import math
 
 def generate_grid(locations, filename):
@@ -18,9 +18,8 @@ def generate_grid(locations, filename):
     grid = []
     for location in locations:
         current_location = []
-        global RANDOM_SEED
-        current_location.append('--random-seed ' + str(RANDOM_SEED))
-        RANDOM_SEED += 1
+        current_location.append('--random-seed ' + str(constants.RANDOM_SEED))
+        constants.RANDOM_SEED += 1
         for key, value in location.dimensions.items():
             if key.should_print:
                 current_location.append(key.name + ' ' + str(value))

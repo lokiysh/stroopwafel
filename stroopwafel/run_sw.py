@@ -2,7 +2,6 @@ import os
 import time
 import shutil
 from . import sw, distributions, constants
-#from stroopwafel_dev import sw, classes, prior, sampler, distributions, constants, utils, run_sw
 
 
 ##############################################################
@@ -20,8 +19,7 @@ def run_stroopwafel(output_folder, output_filename, random_seed_base,
 
     start_time = time.time()
 
-    global RANDOM_SEED 
-    RANDOM_SEED = random_seed_base # initialize
+    constants.RANDOM_SEED = random_seed_base # initialize random seed 
 
     #def configure_code_run(batch, output_folder, random_seed_base, NUM_SYSTEMS_PER_RUN, executable, commandOptions ):
     def configure_code_run(batch):

@@ -23,5 +23,5 @@ NUM_GENERATIONS = 10
 MIN_ENTROPY_CHANGE = 0.01
 KAPPA = 1.0
 
-# Cheap hack for global value
+# Create global random seed, so it can be set and incremented in separate modules
 RANDOM_SEED = 0
