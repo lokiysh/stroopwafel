@@ -30,7 +30,7 @@ def run_stroopwafel(output_folder, output_filename, random_seed_base,
                 It also has a subprocess which will run under the key process. Rest, it depends on the user. User is free to store any information they might need later 
                 for each batch run in this dictionary. For example, here I have stored the 'output_container' and 'grid_filename' so that I can read them during discovery of interesting systems below
         OUT:
-            compas_args (list(String)) : This defines what will run. It should point to the executable file along with the arguments.
+            exe_args (list(String)) : This defines what will run. It should point to the executable file along with the arguments.
             Additionally one must also store the grid_filename in the batch so that the grid file is created
         """
         batch_num = batch['number']
@@ -40,7 +40,7 @@ def run_stroopwafel(output_folder, output_filename, random_seed_base,
         exe_args = [executable, '--grid', grid_filename, '--output-container', output_container] #, '--random-seed' , random_seed]
         [exe_args.extend([key, val]) for key, val in commandOptions.items()]
         for params in extra_params:
-            compas_args.extend(params.split("="))
+            exe_args.extend(params.split("="))
         batch['grid_filename'] = grid_filename
         batch['output_container'] = output_container
         return exe_args

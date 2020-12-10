@@ -80,6 +80,8 @@ class Stroopwafel:
             if batch['process']:
                 returncode = batch['process'].wait()
             folder = os.path.join(self.output_folder, batch['output_container'])
+            if not os.path.exists(folder):
+                os.mkdir(folder)
             shutil.move(batch['grid_filename'], os.path.join(folder, 'grid_' + str(batch['number']) + '.csv'))
             [location.properties.update({'is_hit': 0}) for location in batch['samples']]
             hits = 0
