@@ -113,11 +113,6 @@ def generate_slurm_file(command, batch_num, output_folder):
     writer.write("#!/bin/bash\n")
     writer.write("#SBATCH --mem-per-cpu=1024\n")
     writer.write("#SBATCH --output=output.out\n")
-    # Additions by Lieke Nov 2020
-    writer.write("#SBATCH -p shared\n")
-    writer.write("module load gsl\n")
-    writer.write("export CPP_INCLUDE_PATH=/n/home04/lvanson/Programs/lib/boost/include\n")
-    writer.write("export LD_LIBRARY_PATH=/n/home04/lvanson/Programs/lib/boost/lib:$LD_LIBRARY_PATH\n")
     writer.write(command + " > " + log_file + " \n")
     writer.close()
     return slurm_file

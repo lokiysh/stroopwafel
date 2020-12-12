@@ -1,0 +1,110 @@
+#!/usr/bin/env python
+
+import os
+import pandas as pd
+import shutil
+import time
+import numpy as np
+import sys
+sys.path.append('../') #Only required in the test directory for testing purposes
+from stroopwafel import sw, classes, prior, sampler, distributions, constants, utils
+import argparse
+
+parser=argparse.ArgumentParser()
+parser.add_argument('--num_systems', help = 'Total number of systems', type = int, default = 100)
+parser.add_argument('--num_cores', help = 'Number of cores to run in parallel', type = int, default = 2)
+parser.add_argument('--num_per_core', help = 'Number of systems to generate in one core', type = int, default = 10)
+parser.add_argument('--debug', help = 'If debug of COMPAS is to be printed', default = False, action="store_true")
+parser.add_argument('--mc_only', help = 'If run in MC simulation mode only', default = True, action="store_true")
+parser.add_argument('--run_on_helios', help = 'If we are running on helios (or other slurm) nodes', default = False, action="store_true")
+parser.add_argument('--output_filename', help = 'Output filename', default = 'samples.csv')
+namespace, extra_params = parser.parse_known_args()
+
+# STEP 2 : Define the functions
+def create_dimensions():
+    """
+    This Function that will create all the dimensions for stroopwafel, a dimension is basically one of the variables you want to sample
+    Invoke the Dimension class to create objects for each variable. Look at the Dimension class definition in classes.py for more.
+    It takes the name of the dimension, its max and min value. 
+    The Sampler class will tell how to sample this dimension. Similarly, prior tells it how it calculates the prior. You can find more of these in their respective modules
+    OUT:
+        As Output, this should return a list containing all the instances of Dimension class.
+    """
+    m1 = classes.Dimension('Mass_1', 5, 50, sampler.kroupa, prior.kroupa)
+    q = classes.Dimension('q', 0.2, 1, sampler.uniform, prior.uniform, should_print = False)
+    a = classes.Dimension('Separation', .01, 100, sampler.flat_in_log, prior.flat_in_log)
+    return [m1, q, a]
+
+def update_properties(locations, dimensions):
+    """
+    This function is not mandatory, it is required only if you have some dependent variable. 
+    For example, if you want to sample Mass_1 and q, then Mass_2 is a dependent variable which is product of the two.
+    Similarly, you can assume that Metallicity_2 will always be equal to Metallicity_1
+    IN:
+        locations (list(Location)) : A list containing objects of Location class in classes.py. 
+        You can play with them and update whatever fields you like or add more in the property (which is a dictionary)
+    OUT: Not Required
+    """
+    m1 = dimensions[0]
+    q = dimensions[1]
+    for location in locations:
+        location.properties['Mass_2'] = location.dimensions[m1] * location.dimensions[q]
+        location.properties['Metallicity_2'] = location.properties['Metallicity_1'] = constants.METALLICITY_SOL
+        location.properties['Eccentricity'] = 0
+
+def configure_code_run(batch):
+    """
+    This function tells stroopwafel what program to run, along with its arguments.
+    IN:
+        batch(dict): This is a dictionary which stores some information about one of the runs. It has an number key which stores the unique id of the run
+            It also has a subprocess which will run under the key process. Rest, it depends on the user. User is free to store any information they might need later 
+            for each batch run in this dictionary. For example, here I have stored the 'output_container' and 'grid_filename' so that I can read them during discovery of interesting systems below
+    OUT:
+        compas_args (list(String)) : This defines what will run. It should point to the executable file along with the arguments.
+        Additionally one must also store the grid_filename in the batch so that the grid file is created
+    """
+    batch_num = batch['number']
+    grid_filename = os.path.join(output_folder, 'grid_' + str(batch_num) + '.csv')
+    output_container = 'batch_' + str(batch_num)
+    compas_args = [compas_executable, "--grid", '"' + grid_filename + '"', '--outputPath', '"' + output_folder + '"', '--logfile-delimiter', 'COMMA', '--output-container', output_container, '--random-seed', np.random.randint(2, 2**63 - 1)]
+    for params in extra_params:
+        compas_args.extend(params.split("="))
+    batch['grid_filename'] = grid_filename
+    batch['output_container'] = output_container
+    return compas_args
+
+if __name__ == '__main__':
+    start_time = time.time()
+    #Define the parameters to the constructor of stroopwafel
+    TOTAL_NUM_SYSTEMS = namespace.num_systems #total number of systems you want in the end
+    NUM_CPU_CORES = namespace.num_cores #Number of cpu cores you want to run in parellel
+    NUM_SYSTEMS_PER_RUN = namespace.num_per_core #Number of systems generated by each of run on each cpu core
+    debug = namespace.debug #If True, will print the logs given by the external program (like COMPAS)
+    run_on_helios = namespace.run_on_helios #If True, it will run on a clustered system helios, rather than your pc
+    mc_only = namespace.mc_only # If you dont want to do the refinement phase and just do random mc exploration
+    output_filename = namespace.output_filename #The name of the output file
+    compas_executable = os.path.join(os.environ.get('COMPAS_ROOT_DIR'), 'src/COMPAS') # Location of the executable
+    output_folder =  os.path.join(os.getcwd(), 'output') # Folder you want to receieve outputs, here the current working directory, but you can specify anywhere
+
+    if os.path.exists(output_folder):
+        command = input ("The output folder already exists. If you continue, I will remove all its content. Press (Y/N)\n")
+        if (command == 'Y'):
+            shutil.rmtree(output_folder)
+        else:
+            exit()
+    os.makedirs(output_folder)
+
+    # STEP 1 : Create an instance of the Stroopwafel class
+    sw_object = sw.Stroopwafel(TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, output_folder, output_filename, debug = debug, run_on_helios = run_on_helios, mc_only = mc_only)
+
+
+    #STEP 3: Initialize the stroopwafel object with the user defined functions and create dimensions and initial distribution
+    dimensions = create_dimensions()
+    sw_object.initialize(dimensions, None, configure_code_run, None, update_properties_method = update_properties)
+
+    intial_pdf = distributions.InitialDistribution(dimensions)
+    #STEP 4: Run the 4 phases of stroopwafel
+    sw_object.explore(intial_pdf) #Pass in the initial distribution for exploration phase
+    
+    end_time = time.time()
+    print ("Total running time = %d seconds" %(end_time - start_time))
