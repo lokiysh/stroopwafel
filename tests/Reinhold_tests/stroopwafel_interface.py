@@ -25,13 +25,13 @@ usePythonSubmit = False #If false, use stroopwafel defaults
 ### Set default stroopwafel inputs - these are overwritten by any command-line arguments
 
 executable = os.path.join(os.environ.get('COMPAS_ROOT_DIR'), 'src/COMPAS')   # Location of the executable      # Note: overrides pythonSubmit value
-num_systems = 100000                # Number of binary systems to evolve                                              # Note: overrides pythonSubmit value
+num_systems = 1000                  # Number of binary systems to evolve                                              # Note: overrides pythonSubmit value
 output_folder = 'output/'    # Location of output folder (relative to cwd)                                     # Note: overrides pythonSubmit value
 random_seed_base = 0                # The initial random seed to increment from                                       # Note: overrides pythonSubmit value
 
 num_cores = 100                     # Number of cores to parallelize over 
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
-run_on_hpc = True                   # Run on slurm based cluster HPC
+run_on_hpc = False                  # Run on slurm based cluster HPC
 debug = True                        # show COMPAS output/errors
 
 num_per_core = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
@@ -48,7 +48,7 @@ def create_dimensions():
     """
     m1 = classes.Dimension('--initial-mass-1', 5, 50, sampler.kroupa, prior.kroupa)
     q = classes.Dimension('q', 0.1, 1, sampler.uniform, prior.uniform, should_print = False)
-    a = classes.Dimension('--semi-major-axis', .1, 1000, sampler.flat_in_log, prior.flat_in_log) 
+    a = classes.Dimension('--semi-major-axis', .01, 1000, sampler.flat_in_log, prior.flat_in_log) 
     return [m1, q, a ]
 
 def update_properties(locations, dimensions):
@@ -73,6 +73,18 @@ def update_properties(locations, dimensions):
         location.properties['--kick-phi-2'] = np.random.uniform(0, 2 * np.pi)
         location.properties['--kick-mean-anomaly-1'] = np.random.uniform(0, 2 * np.pi)
         location.properties['--kick-mean-anomaly-2'] = np.random.uniform(0, 2 * np.pi)
+
+        #location.properties['--kick-magnitude-1'] =  # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-2'] =  # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-random-1'] =  # (default = uniform random number [0.0, 1.0))
+        #location.properties['--kick-magnitude-random-2'] =  # (default = uniform random number [0.0, 1.0))
+
+        location.properties['--remnant-mass-prescription'] = ''  #(options: [HURLEY2000, BELCZYNSKI2002, FRYER2012, MULLER2016, MULLERMANDEL, SCHNEIDER2020, SCHNEIDER2020ALT], default = FRYER2012)
+        location.properties['--kick-magnitude-distribution'] = '' #(options: [ZERO, FIXED, FLAT, MAXWELLIAN, BRAYELDRIDGE, MULLER2016, MULLER2016MAXWELLIAN, MULLERMANDEL], default = MAXWELLIAN)
+        #location.properties['--kick-magnitude-sigma-CCSN-NS'] = 265 # (default = 250.000000 km s^-1 )
+        #location.properties['--kick-magnitude-sigma-ECSN'] = 30.0 # (default = 30.000000 km s^-1 )
+        #location.properties['--kick-magnitude-sigma-USSN'] = 30.0 # (default = 30.000000 km s^-1 )
+
 
 
 

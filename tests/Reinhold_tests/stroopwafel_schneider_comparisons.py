@@ -26,16 +26,17 @@ usePythonSubmit = False #If false, use stroopwafel defaults
 
 executable = os.path.join(os.environ.get('COMPAS_ROOT_DIR'), 'src/COMPAS')   # Location of the executable      # Note: overrides pythonSubmit value
 num_systems = 100000                # Number of binary systems to evolve                                              # Note: overrides pythonSubmit value
+#output_folder = 'output/'    # Location of output folder (relative to cwd)                                     # Note: overrides pythonSubmit value
 output_folder = '/home/rwillcox/output_oz101/remnant_mass_comparisons2/belczynski/'    # Location of output folder (relative to cwd)                                     # Note: overrides pythonSubmit value
 random_seed_base = 0                # The initial random seed to increment from                                       # Note: overrides pythonSubmit value
 
 num_cores = 100                     # Number of cores to parallelize over 
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
-run_on_hpc = True                   # Run on slurm based cluster HPC
-num_per_core = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
-
-output_filename = 'samples.csv'     # output filename for the stroopwafel samples
+run_on_hpc = False                  # Run on slurm based cluster HPC
 debug = True                        # show COMPAS output/errors
+
+num_per_core = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
+output_filename = 'samples.csv'     # output filename for the stroopwafel samples
 
 def create_dimensions():
     """
@@ -48,8 +49,8 @@ def create_dimensions():
     """
     m1 = classes.Dimension('--initial-mass-1', 5, 50, sampler.kroupa, prior.kroupa)
     q = classes.Dimension('q', 0.1, 1, sampler.uniform, prior.uniform, should_print = False)
-    a = classes.Dimension('--semi-major-axis', .1, 1000, sampler.flat_in_log, prior.flat_in_log) 
-    return [m1, q, a]
+    a = classes.Dimension('--semi-major-axis', .01, 1000, sampler.flat_in_log, prior.flat_in_log) 
+    return [m1, q, a ]
 
 def update_properties(locations, dimensions):
     """
@@ -67,7 +68,25 @@ def update_properties(locations, dimensions):
         location.properties['--initial-mass-2'] = location.dimensions[m1] * location.dimensions[q]
         location.properties['--metallicity'] = constants.METALLICITY_SOL
         location.properties['--eccentricity'] = 0
-        
+        location.properties['--kick-theta-2'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
+        location.properties['--kick-theta-1'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
+        location.properties['--kick-phi-1'] = np.random.uniform(0, 2 * np.pi)
+        location.properties['--kick-phi-2'] = np.random.uniform(0, 2 * np.pi)
+        location.properties['--kick-mean-anomaly-1'] = np.random.uniform(0, 2 * np.pi)
+        location.properties['--kick-mean-anomaly-2'] = np.random.uniform(0, 2 * np.pi)
+
+        #location.properties['--kick-magnitude-1'] =  # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-2'] =  # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-random-1'] =  # (default = uniform random number [0.0, 1.0))
+        #location.properties['--kick-magnitude-random-2'] =  # (default = uniform random number [0.0, 1.0))
+
+        location.properties['--remnant-mass-prescription'] = ''  #(options: [HURLEY2000, BELCZYNSKI2002, FRYER2012, MULLER2016, MULLERMANDEL, SCHNEIDER2020, SCHNEIDER2020ALT], default = FRYER2012)
+        location.properties['--kick-magnitude-distribution'] = '' #(options: [ZERO, FIXED, FLAT, MAXWELLIAN, BRAYELDRIDGE, MULLER2016, MULLER2016MAXWELLIAN, MULLERMANDEL], default = MAXWELLIAN)
+        #location.properties['--kick-magnitude-sigma-CCSN-NS'] = 265 # (default = 250.000000 km s^-1 )
+        #location.properties['--kick-magnitude-sigma-ECSN'] = 30.0 # (default = 30.000000 km s^-1 )
+        #location.properties['--kick-magnitude-sigma-USSN'] = 30.0 # (default = 30.000000 km s^-1 )
+
+
 
 
 def interesting_systems(batch):
@@ -213,34 +232,3 @@ if __name__ == '__main__':
         create_dimensions, update_properties, interesting_systems,
         selection_effects, rejected_systems)
 
-#    print("Output folder is: ", output_folder)
-#    if os.path.exists(output_folder):
-#        command = input ("The output folder already exists. If you continue, I will remove all its content. Press (Y/N)\n")
-#        if (command == 'Y'):
-#            shutil.rmtree(output_folder)
-#        else:
-#            exit()
-#    os.makedirs(output_folder)
-#
-#
-#    # STEP 2 : Create an instance of the Stroopwafel class
-#    sw_object = sw.Stroopwafel(TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, output_folder, output_filename, debug = debug, run_on_helios = run_on_hpc, mc_only = mc_only)
-#
-#
-#    # STEP 3: Initialize the stroopwafel object with the user defined functions and create dimensions and initial distribution
-#    dimensions = create_dimensions()
-#    #sw_object.initialize(dimensions, interesting_systems, configure_code_run, rejected_systems, update_properties_method = update_properties)
-#    sw_object.initialize(dimensions, None, configure_code_run, None, update_properties_method = update_properties)
-#
-#
-#    intial_pdf = distributions.InitialDistribution(dimensions)
-#    # STEP 4: Run the 4 phases of stroopwafel
-#    sw_object.explore(intial_pdf) #Pass in the initial distribution for exploration phase
-#    #sw_object.adapt(n_dimensional_distribution_type = distributions.Gaussian) #Adaptaion phase, tell stroopwafel what kind of distribution you would like to create instrumental distributions
-#    ## Do selection effects
-#    #selection_effects(sw)
-#    #sw_object.refine() #Stroopwafel will draw samples from the adapted distributions
-#    #sw_object.postprocess(distributions.Gaussian, only_hits = False) #Run it to create weights, if you want only hits in the output, then make only_hits = True
-#
-#    end_time = time.time()
-#    print ("Total running time = %d seconds" %(end_time - start_time))
