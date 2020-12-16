@@ -25,14 +25,14 @@ import argparse
 ### Set default stroopwafel inputs - these are overwritten by any command-line arguments
 
 executable = os.path.join(os.environ.get('COMPAS_ROOT_DIR'), 'src/COMPAS')   # Location of the executable      # Note: overrides pythonSubmit value
-num_systems = 1000                  # Number of binary systems to evolve                                              # Note: overrides pythonSubmit value
-output_folder = 'output/'    # Location of output folder (relative to cwd)                                     # Note: overrides pythonSubmit value
+num_systems = 10000                 # Number of binary systems to evolve                                              # Note: overrides pythonSubmit value
+output_folder = 'output/'           # Location of output folder (relative to cwd)                                     # Note: overrides pythonSubmit value
 random_seed_base = 0                # The initial random seed to increment from                                       # Note: overrides pythonSubmit value
 
-num_cores = 2                       # Number of cores to parallelize over 
+num_cores = 10                      # Number of cores to parallelize over 
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
-run_on_hpc = False                  # Run on slurm based cluster HPC
-time_request = "0-00:20:00"         # Request HPC time-per-cpu in DD-HH:MM:SS - only valid for HPC
+run_on_hpc = True                   # Run on slurm based cluster HPC
+time_request = None                 # Request HPC time-per-cpu in DD-HH:MM:SS - default is .15s/binary/cpu (only valid for HPC)
 debug = True                        # show COMPAS output/errors
 
 num_per_core = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores

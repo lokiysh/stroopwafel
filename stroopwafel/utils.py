@@ -97,13 +97,14 @@ def read_samples(filename, dimensions, only_hits = False):
             locations.append(Location.create_location(dimensions_hash, sample))
         return locations
 
-def generate_slurm_file(command, batch_num, output_folder, time_request=None):
+def generate_slurm_file(command, batch_num, output_folder, time_request):
     """
     Function that generates a slurm file to run the given command on helios batch
     IN:
         command (String) : The command to be run
         batch_bum (int) : Batch number, would be used to generate file name
         output_folder (Path) : Where to generate the output
+        time_request (String) : HPC wall time request
     OUT:
         slurm_file (String) : Path of the file generated
     """
@@ -115,19 +116,19 @@ def generate_slurm_file(command, batch_num, output_folder, time_request=None):
     writer.write("#!/bin/bash\n")
     writer.write("#SBATCH --mem-per-cpu=1024\n")
     writer.write("#SBATCH --output=output.out\n")
-    if time_request is not None:
-        writer.write("#SBATCH --time=" + time_request + "\n")
+    writer.write("#SBATCH --time=" + time_request + "\n") # Defaults to 20min
     writer.write(command + " > " + log_file + " \n")
     writer.close()
     return slurm_file
 
-def run_code(command, batch_num, output_folder, time_request=None, debug = False, run_on_helios = True):
+def run_code(command, batch_num, output_folder, time_request, debug = False, run_on_helios = True):
     """
     Function that runs the command specified on the command shell.
     IN:
         command list(String): A list of commands to be triggered along with the options
         batch_num (int) : The current batch number to generate the filename
         output_folder (Path) : Where to generate the output
+        time_request (String) : HPC wall time request
         debug (Boolean) : If true will print stuff to console
         run_on_helios (Boolean) : If true will generate slurm file to run on helios
     OUT:

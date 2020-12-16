@@ -10,10 +10,19 @@ class Stroopwafel:
         self.num_samples_per_batch = num_samples_per_batch
         self.output_folder = output_folder
         self.output_filename = os.path.join(self.output_folder, output_filename)
-        self.time_request=time_request
         self.debug = debug
         self.run_on_helios = run_on_helios
         self.mc_only = mc_only
+        if time_request is not None:
+            self.time_request = time_request
+        else:
+            # Buffer 0.15s per binary on each node
+            ss = 0.15*self.total_num_systems/num_batches_in_parallel 
+            # Convert to DD-HH:MM:SS format
+            (dd, ss) = divmod(ss, 86400) # 60*60*24
+            (hh, ss) = divmod(ss, 3600)  # 60*60
+            (mm, ss) = divmod(ss, 60)
+            self.time_request = str(int(dd)) + '-' + str(int(hh)) + ':' + str(int(mm)) + ':' + str(int(ss))
 
     def update_fraction_explored(self):
         """
