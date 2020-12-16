@@ -20,7 +20,7 @@ import argparse
 
 
 ### Include options from local pythonSubmit file      
-usePythonSubmit = False #If false, use stroopwafel defaults
+#usePythonSubmit = False #If false, use stroopwafel defaults
 
 ### Set default stroopwafel inputs - these are overwritten by any command-line arguments
 
@@ -29,9 +29,10 @@ num_systems = 1000                  # Number of binary systems to evolve        
 output_folder = 'output/'    # Location of output folder (relative to cwd)                                     # Note: overrides pythonSubmit value
 random_seed_base = 0                # The initial random seed to increment from                                       # Note: overrides pythonSubmit value
 
-num_cores = 100                     # Number of cores to parallelize over 
+num_cores = 2                       # Number of cores to parallelize over 
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
 run_on_hpc = False                  # Run on slurm based cluster HPC
+time_request = "0-00:20:00"         # Request HPC time-per-cpu in DD-HH:MM:SS - only valid for HPC
 debug = True                        # show COMPAS output/errors
 
 num_per_core = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
@@ -67,8 +68,8 @@ def update_properties(locations, dimensions):
         location.properties['--initial-mass-2'] = location.dimensions[m1] * location.dimensions[q]
         location.properties['--metallicity'] = constants.METALLICITY_SOL
         location.properties['--eccentricity'] = 0
-        location.properties['--kick-theta-2'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
         location.properties['--kick-theta-1'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
+        location.properties['--kick-theta-2'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
         location.properties['--kick-phi-1'] = np.random.uniform(0, 2 * np.pi)
         location.properties['--kick-phi-2'] = np.random.uniform(0, 2 * np.pi)
         location.properties['--kick-mean-anomaly-1'] = np.random.uniform(0, 2 * np.pi)
@@ -79,8 +80,8 @@ def update_properties(locations, dimensions):
         #location.properties['--kick-magnitude-random-1'] =  # (default = uniform random number [0.0, 1.0))
         #location.properties['--kick-magnitude-random-2'] =  # (default = uniform random number [0.0, 1.0))
 
-        location.properties['--remnant-mass-prescription'] = ''  #(options: [HURLEY2000, BELCZYNSKI2002, FRYER2012, MULLER2016, MULLERMANDEL, SCHNEIDER2020, SCHNEIDER2020ALT], default = FRYER2012)
-        location.properties['--kick-magnitude-distribution'] = '' #(options: [ZERO, FIXED, FLAT, MAXWELLIAN, BRAYELDRIDGE, MULLER2016, MULLER2016MAXWELLIAN, MULLERMANDEL], default = MAXWELLIAN)
+        #location.properties['--remnant-mass-prescription'] = ''  #(options: [HURLEY2000, BELCZYNSKI2002, FRYER2012, MULLER2016, MULLERMANDEL, SCHNEIDER2020, SCHNEIDER2020ALT], default = FRYER2012)
+        #location.properties['--kick-magnitude-distribution'] = '' #(options: [ZERO, FIXED, FLAT, MAXWELLIAN, BRAYELDRIDGE, MULLER2016, MULLER2016MAXWELLIAN, MULLERMANDEL], default = MAXWELLIAN)
         #location.properties['--kick-magnitude-sigma-CCSN-NS'] = 265 # (default = 250.000000 km s^-1 )
         #location.properties['--kick-magnitude-sigma-ECSN'] = 30.0 # (default = 30.000000 km s^-1 )
         #location.properties['--kick-magnitude-sigma-USSN'] = 30.0 # (default = 30.000000 km s^-1 )
@@ -204,30 +205,30 @@ if __name__ == '__main__':
     commandOptions.update({'--logfile-delimiter' : 'COMMA'})  # overriden if there is a pythonSubmit
 
     # Over-ride with pythonSubmit parameters, if desired
-    if usePythonSubmit:
-        try:
-            from pythonSubmit import pythonProgramOptions
-            programOptions = pythonProgramOptions()
-            pySubOptions = programOptions.generateCommandLineOptionsDict()
+    #if usePythonSubmit:
+    #    try:
+    #        from pythonSubmit import pythonProgramOptions
+    #        programOptions = pythonProgramOptions()
+    #        pySubOptions = programOptions.generateCommandLineOptionsDict()
 
-            # Remove extraneous options
-            pySubOptions.pop('compas_executable', None)
-            pySubOptions.pop('--grid', None)
-            pySubOptions.pop('--output-container', None)
-            pySubOptions.pop('--number-of-binaries', None)
-            pySubOptions.pop('--output-path', None)
-            pySubOptions.pop('--random-seed', None)
+    #        # Remove extraneous options
+    #        pySubOptions.pop('compas_executable', None)
+    #        pySubOptions.pop('--grid', None)
+    #        pySubOptions.pop('--output-container', None)
+    #        pySubOptions.pop('--number-of-binaries', None)
+    #        pySubOptions.pop('--output-path', None)
+    #        pySubOptions.pop('--random-seed', None)
 
-            commandOptions.update(pySubOptions)
+    #        commandOptions.update(pySubOptions)
 
-        except:
-            print("Invalid pythonSubmit file, using default stroopwafel options")
-            usePythonSubmit = False
+    #    except:
+    #        print("Invalid pythonSubmit file, using default stroopwafel options")
+    #        usePythonSubmit = False
     
     run_sw.run_stroopwafel(output_folder, output_filename, random_seed_base, 
         executable, commandOptions, extra_params, 
         TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, 
-        debug , run_on_hpc, mc_only,
+        time_request, debug, run_on_hpc, mc_only,
         create_dimensions, update_properties, interesting_systems,
         selection_effects, rejected_systems)
 

@@ -97,7 +97,7 @@ def read_samples(filename, dimensions, only_hits = False):
             locations.append(Location.create_location(dimensions_hash, sample))
         return locations
 
-def generate_slurm_file(command, batch_num, output_folder):
+def generate_slurm_file(command, batch_num, output_folder, time_request=None):
     """
     Function that generates a slurm file to run the given command on helios batch
     IN:
@@ -115,11 +115,13 @@ def generate_slurm_file(command, batch_num, output_folder):
     writer.write("#!/bin/bash\n")
     writer.write("#SBATCH --mem-per-cpu=1024\n")
     writer.write("#SBATCH --output=output.out\n")
+    if time_request is not None:
+        writer.write("#SBATCH --time=" + time_request + "\n")
     writer.write(command + " > " + log_file + " \n")
     writer.close()
     return slurm_file
 
-def run_code(command, batch_num, output_folder, debug = False, run_on_helios = True):
+def run_code(command, batch_num, output_folder, time_request=None, debug = False, run_on_helios = True):
     """
     Function that runs the command specified on the command shell.
     IN:
@@ -139,7 +141,7 @@ def run_code(command, batch_num, output_folder, debug = False, run_on_helios = T
             stdout = stderr = None
         command_to_run = " ".join(str(v) for v in command)
         if run_on_helios:
-            slurm_file = generate_slurm_file(" ".join(str(v) for v in command), batch_num, output_folder)
+            slurm_file = generate_slurm_file(" ".join(str(v) for v in command), batch_num, output_folder, time_request)
             command_to_run = "sbatch -W -Q " + slurm_file
         else:
             log_folder = get_or_create_folder(output_folder, 'logs')

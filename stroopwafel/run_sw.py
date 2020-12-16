@@ -13,7 +13,7 @@ from . import sw, distributions, constants
 def run_stroopwafel(output_folder, output_filename, random_seed_base, 
         executable, commandOptions, extra_params,
         TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, 
-        debug, run_on_helios, mc_only,
+        time_request, debug, run_on_helios, mc_only,
         create_dimensions, update_properties, interesting_systems,
         selection_effects, rejected_systems):
 
@@ -56,7 +56,7 @@ def run_stroopwafel(output_folder, output_filename, random_seed_base,
 
 
     # STEP 2 : Create an instance of the Stroopwafel class
-    sw_object = sw.Stroopwafel(TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, output_folder, output_filename, debug = debug, run_on_helios = run_on_helios, mc_only = mc_only)
+    sw_object = sw.Stroopwafel(TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, output_folder, output_filename, time_request, debug = debug, run_on_helios = run_on_helios, mc_only = mc_only)
 
 
     # STEP 3: Initialize the stroopwafel object with the user defined functions and create dimensions and initial distribution
