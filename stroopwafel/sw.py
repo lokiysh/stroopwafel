@@ -215,7 +215,7 @@ class Stroopwafel:
                 current_batch['samples'] = locations_ref
                 command = self.configure_code_run(current_batch)
                 generate_grid(locations_ref, current_batch['grid_filename'])
-                current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)
+                current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.time_request, self.debug, self.run_on_helios)
                 batches.append(current_batch)
                 self.batch_num = self.batch_num + 1
             self.process_batches(batches, False)
