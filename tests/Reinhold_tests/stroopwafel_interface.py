@@ -38,6 +38,9 @@ debug = True                        # show COMPAS output/errors
 num_per_core = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
 output_filename = 'samples.csv'     # output filename for the stroopwafel samples
 
+# Fix the random seed for the numpy calls
+np.random.seed(random_seed_base)
+
 def create_dimensions():
     """
     This Function that will create all the dimensions for stroopwafel, a dimension is basically one of the variables you want to sample
