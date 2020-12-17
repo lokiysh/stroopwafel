@@ -6,10 +6,10 @@ import shutil
 import time
 import numpy as np
 import h5py as h5
-sys.path.append('../')
 sys.path.append('../../') #Only required in the test directory for testing purposes
-#sys.path.append('/home/floris/COMPASv2/COMPAS/defaults')
-from stroopwafel import sw, classes, prior, sampler, distributions, constants, utils
+#sys.path.append('/home/floris/COMPASv2/COMPAS/defaults') # Change to location of SW folder
+from stroopwafel import sw, genais, classes, prior, sampler, distributions, constants, utils, makeh5
+
 import argparse
 
 # TODO fix issues with adaptive sampling
@@ -132,25 +132,27 @@ def interesting_systems(batch):
         In the below example, I define all the NSs as interesting, so I read the files, get the SEED from the system_params file and define the key is_hit in the end for all interesting systems 
     """
     
-    batch_nr = batch['output_container']
+    batch_str = batch['output_container']
     folder = os.path.join(output_folder, batch['output_container'])
-    shutil.move(batch['grid_filename'], folder + '/grid_' + str(batch['number']) + '.csv')
+    #shutil.move(batch['grid_filename'], folder + '/grid_' + str(batch['number']) + '.csv')
 
     if createh5:
-        import makeh5
-        sp, dco = makeh5.hdf5(output_folder, batch=batch_nr)
-        sp.reset_index(drop=True, inplace=True)
-        sp['SEED'] = sp['SEED'].astype(np.int64)
-        seeds = sp['SEED']
-        for index, sample in enumerate(batch['samples']):
-            seed = seeds[index]
-            sample.properties['SEED'] = seed
-            sample.properties['is_hit'] = 0
-            sample.properties['batch'] = batch['number']
-        dco.reset_index(drop=True, inplace=True)
-        dco['Stellar_Type(1)'] = dco['Stellar_Type(1)'].astype(np.int64)
-        dco['Stellar_Type(2)'] = dco['Stellar_Type(2)'].astype(np.int64)
-        dco['Merges_Hubble_Time'] = dco['Merges_Hubble_Time'].astype(np.int64)
+        sp, dco = makeh5.hdf5(output_folder, num_systems, num_per_core, batch_nr=batch['number'], batch=batch_str)
+        try:
+            sp.reset_index(drop=True, inplace=True)
+            sp['SEED'] = sp['SEED'].astype(np.int64)
+            seeds = sp['SEED']
+            for index, sample in enumerate(batch['samples']):
+                seed = seeds[index]
+                sample.properties['SEED'] = seed
+                sample.properties['is_hit'] = 0
+                sample.properties['batch'] = batch['number']
+            dco.reset_index(drop=True, inplace=True)
+            dco['Stellar_Type(1)'] = dco['Stellar_Type(1)'].astype(np.int64)
+            dco['Stellar_Type(2)'] = dco['Stellar_Type(2)'].astype(np.int64)
+            dco['Merges_Hubble_Time'] = dco['Merges_Hubble_Time'].astype(np.int64)
+        except:
+            return 0
         
     else:
         sp = pd.read_csv(folder + '/BSE_System_Parameters.csv', skiprows = 2)
@@ -161,8 +163,11 @@ def interesting_systems(batch):
             sample.properties['SEED'] = seed
             sample.properties['is_hit'] = 0
             sample.properties['batch'] = batch['number']
-        dco = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
-        dco.rename(columns = lambda x: x.strip(), inplace = True)
+        try:
+            dco = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
+            dco.rename(columns = lambda x: x.strip(), inplace = True)
+        except:
+            return 0
     
     #Generally, this is the line you would want to change.
     st1 = dco['Stellar_Type(1)']
@@ -320,8 +325,7 @@ if __name__ == '__main__':
     sw_object.postprocess(distributions.Gaussian, only_hits = False) #Run it to create weights, if you want only hits in the output, then make only_hits = True
     
     if createh5:
-        import makeh5
-        _,_ = makeh5.hdf5(output_folder, postproc=True, weights=sw_object.mixture_weight)
+        _,_ = makeh5.hdf5(output_folder, num_systems, num_per_core, postproc=True, weights=sw_object.mixture_weight)
 
     end_time = time.time()
     print ("Total running time = %d seconds" %(end_time - start_time))
