@@ -11,7 +11,7 @@ from . import sw, distributions, constants
 ##############################################################
 
 def run_stroopwafel(output_folder, output_filename, random_seed_base, 
-        executable, commandOptions, extra_params,
+        executable, extra_params,
         TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, 
         time_request, debug, run_on_helios, mc_only,
         create_dimensions, update_properties, interesting_systems,
@@ -21,7 +21,6 @@ def run_stroopwafel(output_folder, output_filename, random_seed_base,
 
     constants.RANDOM_SEED = random_seed_base # initialize random seed 
 
-    #def configure_code_run(batch, output_folder, random_seed_base, NUM_SYSTEMS_PER_RUN, executable, commandOptions ):
     def configure_code_run(batch):
         """
         This function tells stroopwafel what program to run, along with its arguments.
@@ -36,9 +35,7 @@ def run_stroopwafel(output_folder, output_filename, random_seed_base,
         batch_num = batch['number']
         grid_filename = os.path.join(output_folder, 'grid_' + str(batch_num) + '.csv')
         output_container = 'batch_' + str(batch_num)
-        #random_seed = random_seed_base + batch_num*NUM_SYSTEMS_PER_RUN  # ensure that random numbers are not reused across batches
-        exe_args = [executable, '--grid', grid_filename, '--output-container', output_container] #, '--random-seed' , random_seed]
-        [exe_args.extend([key, val]) for key, val in commandOptions.items()]
+        exe_args = [executable, '--grid', grid_filename, '--output-container', output_container, '--output-path', output_folder, '--logfile-delimiter', 'COMMA']
         for params in extra_params:
             exe_args.extend(params.split("="))
         batch['grid_filename'] = grid_filename
@@ -61,8 +58,7 @@ def run_stroopwafel(output_folder, output_filename, random_seed_base,
 
     # STEP 3: Initialize the stroopwafel object with the user defined functions and create dimensions and initial distribution
     dimensions = create_dimensions()
-    #sw_object.initialize(dimensions, interesting_systems, configure_code_run, rejected_systems, update_properties_method = update_properties)
-    sw_object.initialize(dimensions, None, configure_code_run, None, update_properties_method = update_properties)
+    sw_object.initialize(dimensions, interesting_systems, configure_code_run, rejected_systems, update_properties_method = update_properties)
 
 
     intial_pdf = distributions.InitialDistribution(dimensions)
