@@ -2,15 +2,12 @@
 import os, sys
 import pandas as pd
 import shutil
-#import time
 import numpy as np
-sys.path.append('../../') #Only required in the test directory for testing purposes
-from stroopwafel_dev import sw, classes, prior, sampler, distributions, constants, utils, run_sw
 import argparse
 
-# TODO fix issues with adaptive sampling
-# TODO add in functionality for alternative pythonSubmit names and locations
-# TODO add seed to grid files
+sys.path.append(os.environ.get('SW_ROOT')) # FOR TESTING ONLY - TODO: delete this line and the line below after, restore following line
+from stroopwafel_dev import sw, classes, prior, sampler, distributions, constants, utils, run_sw
+#from stroopwafel import sw, classes, prior, sampler, distributions, constants, utils, run_sw  
 
 #######################################################
 ### 
@@ -18,24 +15,20 @@ import argparse
 ### 
 #######################################################
 
-
-### Include options from local pythonSubmit file      
-#usePythonSubmit = False #If false, use stroopwafel defaults
-
 ### Set default stroopwafel inputs - these are overwritten by any command-line arguments
 
-executable = os.path.join(os.environ.get('COMPAS_ROOT_DIR'), 'src/COMPAS')   # Location of the executable      # Note: overrides pythonSubmit value
-num_systems = 10000                 # Number of binary systems to evolve                                              # Note: overrides pythonSubmit value
-output_folder = 'output/'           # Location of output folder (relative to cwd)                                     # Note: overrides pythonSubmit value
-random_seed_base = 0                # The initial random seed to increment from                                       # Note: overrides pythonSubmit value
+executable = os.path.join(os.environ.get('COMPAS_ROOT_DIR'), 'src/COMPAS')   # Location of the executable 
+num_systems = 1000                  # Number of binary systems to evolve                                  
+output_folder = 'output/'           # Location of output folder (relative to cwd)                         
+random_seed_base = 0                # The initial random seed to increment from                           
 
-num_cores = 10                      # Number of cores to parallelize over 
+num_cores = 2                       # Number of cores to parallelize over 
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
-run_on_hpc = True                   # Run on slurm based cluster HPC
+run_on_hpc = False                  # Run on slurm based cluster HPC
 time_request = None                 # Request HPC time-per-cpu in DD-HH:MM:SS - default is .15s/binary/cpu (only valid for HPC)
 debug = True                        # show COMPAS output/errors
 
-num_per_core = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
+num_per_batch = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
 output_filename = 'samples.csv'     # output filename for the stroopwafel samples
 
 # Fix the random seed for the numpy calls
@@ -58,8 +51,8 @@ def create_dimensions():
 def update_properties(locations, dimensions):
     """
     This function is not mandatory, it is required only if you have some dependent variable. 
-    For example, if you want to sample Mass_1 and q, then Mass_2 is a dependent variable which is product of the two.
-    Similarly, you can assume that Metallicity_2 will always be equal to Metallicity_1
+    For example, if you want to sample Mass(1) and q, then Mass(2) is a dependent variable which is product of the two.
+    Similarly, you can assume that Metallicity(2) will always be equal to Metallicity(1)
     IN:
         locations (list(Location)) : A list containing objects of Location class in classes.py. 
         You can play with them and update whatever fields you like or add more in the property (which is a dictionary)
@@ -116,7 +109,7 @@ def interesting_systems(batch):
         double_compact_objects.rename(columns = lambda x: x.strip(), inplace = True)
         #Generally, this is the line you would want to change.
         dns = double_compact_objects[np.logical_and(double_compact_objects['Merges_Hubble_Time'] == 1, \
-            np.logical_and(double_compact_objects['Stellar_Type_1'] == 14, double_compact_objects['Stellar_Type_2'] == 14))]
+            np.logical_and(double_compact_objects['Stellar_Type(1)'] == 14, double_compact_objects['Stellar_Type(2)'] == 14))]
         interesting_systems_seeds = set(dns['SEED'])
         for sample in batch['samples']:
             if sample.properties['SEED'] in interesting_systems_seeds:
@@ -140,7 +133,7 @@ def selection_effects(sw):
             dco_file = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
             dco_file.rename(columns = lambda x: x.strip(), inplace = True)
             row = dco_file.loc[dco_file['SEED'] == distribution.mean.properties['SEED']]
-            rows.append([row.iloc[0]['Mass_1'], row.iloc[0]['Mass_2']])
+            rows.append([row.iloc[0]['Mass(1)'], row.iloc[0]['Mass(2)']])
             biased_masses.append(np.power(max(rows[-1]), 2.2))
         # update the weights
         mean = np.mean(biased_masses)
@@ -160,14 +153,13 @@ def rejected_systems(locations, dimensions):
     q = dimensions[1]
     a = dimensions[2]
     mass_1 = [location.dimensions[m1] for location in locations]
-    mass_2 = [location.properties['Mass_2'] for location in locations]
-    metallicity_1 = [location.properties['Metallicity_1'] for location in locations]
-    metallicity_2 = [location.properties['Metallicity_2'] for location in locations]
-    eccentricity = [location.properties['Eccentricity'] for location in locations]
+    mass_2 = [location.properties['--initial-mass-2'] for location in locations]
+    metallicity = [location.properties['--metallicity'] for location in locations]
+    eccentricity = [location.properties['--eccentricity'] for location in locations]
     num_rejected = 0
     for index, location in enumerate(locations):
-        radius_1 = utils.get_zams_radius(mass_1[index], metallicity_1[index])
-        radius_2 = utils.get_zams_radius(mass_2[index], metallicity_2[index])
+        radius_1 = utils.get_zams_radius(mass_1[index], metallicity[index])
+        radius_2 = utils.get_zams_radius(mass_2[index], metallicity[index])
         roche_lobe_tracker_1 = radius_1 / (location.dimensions[a] * (1 - eccentricity[index]) * utils.calculate_roche_lobe_radius(mass_1[index], mass_2[index]))
         roche_lobe_tracker_2 = radius_2 / (location.dimensions[a] * (1 - eccentricity[index]) * utils.calculate_roche_lobe_radius(mass_2[index], mass_1[index]))
         location.properties['is_rejected'] = 0
@@ -184,7 +176,7 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument('--num_systems', help = 'Total number of systems', type = int, default = num_systems)  
     parser.add_argument('--num_cores', help = 'Number of cores to run in parallel', type = int, default = num_cores)
-    parser.add_argument('--num_per_core', help = 'Number of systems to generate in one core', type = int, default = num_per_core)
+    parser.add_argument('--num_per_batch', help = 'Number of systems to generate in one core', type = int, default = num_per_batch)
     parser.add_argument('--debug', help = 'If debug of COMPAS is to be printed', type = bool, default = debug)
     parser.add_argument('--mc_only', help = 'If run in MC simulation mode only', type = bool, default = mc_only)
     parser.add_argument('--run_on_hpc', help = 'If we are running on a (slurm-based) HPC', type = bool, default = run_on_hpc)
@@ -195,43 +187,19 @@ if __name__ == '__main__':
     #Define the parameters to the constructor of stroopwafel
     TOTAL_NUM_SYSTEMS = namespace.num_systems #total number of systems you want in the end
     NUM_CPU_CORES = namespace.num_cores #Number of cpu cores you want to run in parellel
-    NUM_SYSTEMS_PER_RUN = namespace.num_per_core #Number of systems generated by each of run on each cpu core
+    NUM_SYSTEMS_PER_BATCH = namespace.num_per_batch #Number of systems generated by each of run on each cpu core
     debug = namespace.debug #If True, will print the logs given by the external program (like COMPAS)
     run_on_hpc = namespace.run_on_hpc #If True, it will run on a clustered system helios, rather than your pc
     mc_only = namespace.mc_only # If you dont want to do the refinement phase and just do random mc exploration
     output_filename = namespace.output_filename #The name of the output file
     output_folder = os.path.join(os.getcwd(), namespace.output_folder)
 
-    # Set commandOptions defaults - these are Compas option arguments
-    commandOptions = dict()
-    commandOptions.update({'--output-path' : output_folder}) 
-    commandOptions.update({'--logfile-delimiter' : 'COMMA'})  # overriden if there is a pythonSubmit
-
-    # Over-ride with pythonSubmit parameters, if desired
-    #if usePythonSubmit:
-    #    try:
-    #        from pythonSubmit import pythonProgramOptions
-    #        programOptions = pythonProgramOptions()
-    #        pySubOptions = programOptions.generateCommandLineOptionsDict()
-
-    #        # Remove extraneous options
-    #        pySubOptions.pop('compas_executable', None)
-    #        pySubOptions.pop('--grid', None)
-    #        pySubOptions.pop('--output-container', None)
-    #        pySubOptions.pop('--number-of-binaries', None)
-    #        pySubOptions.pop('--output-path', None)
-    #        pySubOptions.pop('--random-seed', None)
-
-    #        commandOptions.update(pySubOptions)
-
-    #    except:
-    #        print("Invalid pythonSubmit file, using default stroopwafel options")
-    #        usePythonSubmit = False
-    
     run_sw.run_stroopwafel(output_folder, output_filename, random_seed_base, 
-        executable, commandOptions, extra_params, 
-        TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_RUN, 
+        executable, extra_params, 
+        TOTAL_NUM_SYSTEMS, NUM_CPU_CORES, NUM_SYSTEMS_PER_BATCH, 
         time_request, debug, run_on_hpc, mc_only,
         create_dimensions, update_properties, interesting_systems,
         selection_effects, rejected_systems)
+
+    ### Run post-processing
 
