@@ -3,7 +3,8 @@ import os
 import subprocess
 import csv
 from .classes import Location
-from . import constants 
+from . import constants # To use and iterate RANDOM_SEED
+from .constants import R_COEFF, ALPHA_IMF, R_SOL_TO_AU, ZSOL 
 import math
 
 def generate_grid(locations, filename):
