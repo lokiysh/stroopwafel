@@ -50,7 +50,7 @@ def create_dimensions():
     OUT:
         As Output, this should return a list containing all the instances of Dimension class.
     """
-    m1 = classes.Dimension('--initial-mass-1', 5, 50, sampler.kroupa, prior.kroupa)
+    m1 = classes.Dimension('--initial-mass-1', 5, 150, sampler.kroupa, prior.kroupa)
     q = classes.Dimension('q', 0.1, 1, sampler.uniform, prior.uniform, should_print = False)
     a = classes.Dimension('--semi-major-axis', .01, 1000, sampler.flat_in_log, prior.flat_in_log) 
     return [m1, q, a ]
