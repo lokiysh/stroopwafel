@@ -38,8 +38,13 @@ np.random.seed(random_seed_base)                                             # F
 
 ##############################################################################################################
 ###
-### User should set their desired parameters and distributions in the functions below. See function descriptions,
-### or 'docs/sampling.md' for further details.
+### User should set their desired parameters and distributions in the functions below. 
+### See function descriptions, or 'docs/sampling.md' for further details.
+###
+### Any parameter which is not set will fallback to the COMPAS default. COMPAS defaults can be viewed using:
+###     ./COMPAS --help
+### or for just the parameter names:
+###     ./COMPAS -h
 ###
 
 def create_dimensions():
@@ -126,13 +131,13 @@ def interesting_systems(batch):
         double_compact_objects = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
         double_compact_objects.rename(columns = lambda x: x.strip(), inplace = True)
         #Generally, this is the line you would want to change.
-        dns = double_compact_objects[np.logical_and(double_compact_objects['Merges_Hubble_Time'] == 1, \
+        dco = double_compact_objects[np.logical_and(double_compact_objects['Merges_Hubble_Time'] == 1, \
             np.logical_and(double_compact_objects['Stellar_Type(1)'] == 14, double_compact_objects['Stellar_Type(2)'] == 14))]
-        interesting_systems_seeds = set(dns['SEED'])
+        interesting_systems_seeds = set(dco['SEED'])
         for sample in batch['samples']:
             if sample.properties['SEED'] in interesting_systems_seeds:
                 sample.properties['is_hit'] = 1
-        return len(dns)
+        return len(dco)
     except IOError as error:
         return 0
 
