@@ -94,7 +94,10 @@ def read_samples(filename, dimensions, only_hits = False):
         for sample in samples:
             if only_hits and int(sample['is_hit']) == 0:
                 continue
-            sample.update((k, float(v)) for k, v in sample.items())
+            try:
+                sample.update((k, float(v)) for k, v in sample.items())
+            except:
+                sample.update((k, str(v)) for k, v in sample.items())
             locations.append(Location.create_location(dimensions_hash, sample))
         return locations
 
