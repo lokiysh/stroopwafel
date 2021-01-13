@@ -35,7 +35,7 @@ def run_stroopwafel(output_folder, output_filename, random_seed_base,
         batch_num = batch['number']
         grid_filename = os.path.join(output_folder, 'grid_' + str(batch_num) + '.csv')
         output_container = 'batch_' + str(batch_num)
-        exe_args = [executable, '--grid', grid_filename, '--output-container', output_container, '--output-path', output_folder, '--logfile-delimiter', 'COMMA']
+        exe_args = [executable, '--grid', grid_filename, '--output-container', output_container, '--output-path', output_folder]
         for params in extra_params:
             exe_args.extend(params.split("="))
         batch['grid_filename'] = grid_filename
