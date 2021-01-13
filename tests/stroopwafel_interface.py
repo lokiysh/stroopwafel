@@ -32,7 +32,7 @@ num_per_batch = int(np.ceil(num_systems/num_cores)) # Number of binaries per bat
 
 compas_root = os.environ.get('COMPAS_ROOT_DIR')                              # Location of COMPAS installation
 executable = os.path.join(compas_root, 'src/COMPAS')                         # Location of COMAS executable 
-postProcessingFile = os.path.join(compas_root, 'defaults/postProcessing.py') # Location of COMPAS Post-Processing File
+h5copyFile = os.path.join(compas_root, 'postProcessing/Folders/H5/PythonScripts/h5copy.py') # Location of COMPAS h5copy File
 output_filename = 'samples.csv'                                              # Output filename for the stroopwafel samples
 np.random.seed(random_seed_base)                                             # Fix the random seed for the numpy calls
 
@@ -95,12 +95,6 @@ def update_properties(locations, dimensions):
         #location.properties['--kick-magnitude-random-1'] =  # (default = uniform random number [0.0, 1.0))
         #location.properties['--kick-magnitude-random-2'] =  # (default = uniform random number [0.0, 1.0))
 
-        location.properties['--remnant-mass-prescription'] = 'FRYER2012'  #(options: [HURLEY2000, BELCZYNSKI2002, FRYER2012, MULLER2016, MULLERMANDEL, SCHNEIDER2020, SCHNEIDER2020ALT], default = FRYER2012)
-        #location.properties['--fryer-supernova-engine'] = 'DELAYED' #(options: [DELAYED, RAPID], default = DELAYED)
-        location.properties['--kick-magnitude-distribution'] = 'MAXWELLIAN' #(options: [ZERO, FIXED, FLAT, MAXWELLIAN, BRAYELDRIDGE, MULLER2016, MULLER2016MAXWELLIAN, MULLERMANDEL], default = MAXWELLIAN)
-        location.properties['--kick-magnitude-sigma-CCSN-NS'] = 350 # (default = 250.000000 km s^-1 )
-        #location.properties['--kick-magnitude-sigma-ECSN'] = 30.0 # (default = 30.000000 km s^-1 )
-        #location.properties['--kick-magnitude-sigma-USSN'] = 30.0 # (default = 30.000000 km s^-1 )
 
 
 ##############################################################################################################
@@ -231,5 +225,5 @@ if __name__ == '__main__':
         selection_effects, rejected_systems)
 
     ### Convert output to h5 format
-    subprocess.call(["python3", postProcessingFile, output_folder])
+    subprocess.call("python3 " + h5copyFile + ' -o ' + output_folder+'/COMPAS_Output.h5 ' + output_folder+'/*', shell=True)
 
