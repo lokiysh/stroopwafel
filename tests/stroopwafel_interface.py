@@ -23,7 +23,7 @@ output_folder = 'output/'           # Location of output folder (relative to cwd
 random_seed_base = 0                # The initial random seed to increment from                           
 num_cores = 4                       # Number of cores to parallelize over 
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
-run_on_hpc = True                   # Run on slurm based cluster HPC
+run_on_hpc = False                  # Run on slurm based cluster HPC
 time_request = None                 # Request HPC time-per-cpu in DD-HH:MM:SS - default is .15s/binary/cpu (only valid for HPC)
 debug = True                        # Show COMPAS output/errors
 num_per_batch = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
@@ -231,5 +231,5 @@ if __name__ == '__main__':
         selection_effects, rejected_systems)
 
     ### Convert output to h5 format
-    subprocess.call(["python3", h5copyFile, '-o', 'COMPAS_Output.h5', output_folder])
+    subprocess.call("python3 " + h5copyFile + ' -o ' + output_folder+'/COMPAS_Output.h5 ' + output_folder+'/*', shell=True)
 

@@ -33,7 +33,7 @@ num_per_batch = int(np.ceil(num_systems/num_cores)) # Number of binaries per bat
 
 compas_root = os.environ.get('COMPAS_ROOT_DIR')                              # Location of COMPAS installation
 executable = os.path.join(compas_root, 'src/COMPAS')                         # Location of COMAS executable 
-postProcessingFile = os.path.join(compas_root, 'defaults/postProcessing.py') # Location of COMPAS Post-Processing File
+h5copyFile = os.path.join(compas_root, 'postProcessing/Folders/H5/PythonScripts/h5copy.py') # Location of COMPAS h5copy File
 output_filename = 'samples.csv'                                              # Output filename for the stroopwafel samples
 np.random.seed(random_seed_base)                                             # Fix the random seed for the numpy calls
 
@@ -238,5 +238,5 @@ if __name__ == '__main__':
         selection_effects, rejected_systems)
 
     ### Convert output to h5 format
-    subprocess.call(["python3", postProcessingFile, output_folder])
+    subprocess.call("python3 " + h5copyFile + ' -o ' + output_folder+'/COMPAS_Output.h5 ' + output_folder+'/*', shell=True)
 

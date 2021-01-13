@@ -19,7 +19,7 @@ from stroopwafel_dev import sw, classes, prior, sampler, distributions, constant
 ### Set default stroopwafel inputs - these are overwritten by any command-line arguments
 
 num_systems = 10000                 # Number of binary systems to evolve                                  
-output_folder = 'output/alej/' # Location of output folder (relative to cwd)                         
+output_folder = 'output/'           # Location of output folder (relative to cwd)                         
 random_seed_base = 0                # The initial random seed to increment from                           
 num_cores = 4                       # Number of cores to parallelize over 
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
@@ -59,7 +59,7 @@ def create_dimensions():
     OUT:
         As Output, this should return a list containing all the instances of Dimension class.
     """
-    m1 = classes.Dimension('--initial-mass-1', 5, 100, sampler.kroupa, prior.kroupa)
+    m1 = classes.Dimension('--initial-mass-1', 5, 150, sampler.kroupa, prior.kroupa)
     q = classes.Dimension('q', 0.1, 1, sampler.uniform, prior.uniform, should_print = False)
     a = classes.Dimension('--semi-major-axis', .01, 1000, sampler.flat_in_log, prior.flat_in_log) 
     return [m1, q, a ]
@@ -82,7 +82,6 @@ def update_properties(locations, dimensions):
     for location in locations:
         location.properties['--initial-mass-2'] = location.dimensions[m1] * location.dimensions[q]
         location.properties['--metallicity'] = constants.METALLICITY_SOL
-        #location.properties['--metallicity'] = 0.0001
         location.properties['--eccentricity'] = 0
         location.properties['--kick-theta-1'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
         location.properties['--kick-theta-2'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
@@ -91,17 +90,17 @@ def update_properties(locations, dimensions):
         location.properties['--kick-mean-anomaly-1'] = np.random.uniform(0, 2 * np.pi)
         location.properties['--kick-mean-anomaly-2'] = np.random.uniform(0, 2 * np.pi)
 
-        location.properties['--allow-rlof-at-birth'] = 'TRUE'
-        location.properties['--chemically-homogeneous-evolution'] = 'PESSIMISTIC'
-        location.properties['--common-envelope-allow-main-sequence-survive'] = 'TRUE'
-        location.properties['--common-envelope-slope-kruckow'] = -0.8333333333333334
-        location.properties['--kick-magnitude-sigma-CCSN-BH'] = 265.0
-        location.properties['--kick-magnitude-sigma-CCSN-NS'] = 265.0
-        location.properties['--mass-transfer-fa'] = 0.5
-        location.properties['--mass-transfer-rejuvenation-prescription'] = 'STARTRACK'
-        location.properties['--maximum-neutron-star-mass'] = 2.5
-        #location.properties['--rlof-printing'] = 'TRUE'
-        location.properties['--use-mass-loss'] = 'TRUE'
+        #location.properties['--kick-magnitude-1'] =  # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-2'] =  # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-random-1'] =  # (default = uniform random number [0.0, 1.0))
+        #location.properties['--kick-magnitude-random-2'] =  # (default = uniform random number [0.0, 1.0))
+
+        location.properties['--remnant-mass-prescription'] = 'FRYER2012'  #(options: [HURLEY2000, BELCZYNSKI2002, FRYER2012, MULLER2016, MULLERMANDEL, SCHNEIDER2020, SCHNEIDER2020ALT], default = FRYER2012)
+        #location.properties['--fryer-supernova-engine'] = 'DELAYED' #(options: [DELAYED, RAPID], default = DELAYED)
+        #location.properties['--kick-magnitude-distribution'] = 'MAXWELLIAN' #(options: [ZERO, FIXED, FLAT, MAXWELLIAN, BRAYELDRIDGE, MULLER2016, MULLER2016MAXWELLIAN, MULLERMANDEL], default = MAXWELLIAN)
+        location.properties['--kick-magnitude-sigma-CCSN-NS'] = 350 # (default = 250.000000 km s^-1 )
+        #location.properties['--kick-magnitude-sigma-ECSN'] = 30.0 # (default = 30.000000 km s^-1 )
+        #location.properties['--kick-magnitude-sigma-USSN'] = 30.0 # (default = 30.000000 km s^-1 )
 
 
 ##############################################################################################################
