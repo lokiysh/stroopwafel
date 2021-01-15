@@ -85,6 +85,8 @@ def update_properties(locations, dimensions):
         location.properties['--metallicity'] = constants.METALLICITY_SOL
         location.properties['--eccentricity'] = 0
 
+        location.properties['--evolve-unbound-systems'] = 'TRUE'
+
         location.properties['--kick-magnitude-1'] = np.random.triangular(left=0, right=2000, mode=0) 
         location.properties['--kick-magnitude-2'] = np.random.triangular(left=0, right=2000, mode=0) 
         location.properties['--mass-sn-1'] = np.random.uniform(1.2, 3.0)
