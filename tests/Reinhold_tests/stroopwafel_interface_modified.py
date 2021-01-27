@@ -1,6 +1,7 @@
 #!/usr/bin/env python 
 import os, sys
 import numpy as np
+import scipy.stats as ss
 import pandas as pd
 import shutil
 import argparse
@@ -19,11 +20,11 @@ from stroopwafel_dev import sw, classes, prior, sampler, distributions, constant
 ### Set default stroopwafel inputs - these are overwritten by any command-line arguments
 
 num_systems = 10000                 # Number of binary systems to evolve                                  
-output_folder = 'output/'           # Location of output folder (relative to cwd)                         
-random_seed_base = 0                # The initial random seed to increment from                           
-num_cores = 4                       # Number of cores to parallelize over 
+output_folder = '/home/rwillcox/output_oz101/nsk_Models/uniform1.75-maxwellian300/' # Location of output folder (relative to cwd)                         
+random_seed_base = 1567             # The initial random seed to increment from                           
+num_cores = 25                      # Number of cores to parallelize over 
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
-run_on_hpc = False                  # Run on slurm based cluster HPC
+run_on_hpc = True                   # Run on slurm based cluster HPC
 time_request = None                 # Request HPC time-per-cpu in DD-HH:MM:SS - default is .15s/binary/cpu (only valid for HPC)
 debug = True                        # Show COMPAS output/errors
 num_per_batch = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
@@ -90,15 +91,15 @@ def update_properties(locations, dimensions):
         location.properties['--kick-mean-anomaly-1'] = np.random.uniform(0, 2 * np.pi)
         location.properties['--kick-mean-anomaly-2'] = np.random.uniform(0, 2 * np.pi)
 
-        #location.properties['--kick-magnitude-1'] =  # (default = 0.000000 km s^-1 )
-        #location.properties['--kick-magnitude-2'] =  # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-1'] = ss.maxwell(scale=300).rvs(1) # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-2'] = ss.maxwell(scale=300).rvs(1) # (default = 0.000000 km s^-1 )
         #location.properties['--kick-magnitude-random-1'] =  # (default = uniform random number [0.0, 1.0))
         #location.properties['--kick-magnitude-random-2'] =  # (default = uniform random number [0.0, 1.0))
 
-        location.properties['--remnant-mass-prescription'] = 'FRYER2012'  #(options: [HURLEY2000, BELCZYNSKI2002, FRYER2012, MULLER2016, MULLERMANDEL, SCHNEIDER2020, SCHNEIDER2020ALT], default = FRYER2012)
+        #location.properties['--remnant-mass-prescription'] = 'FRYER2012'  #(options: [HURLEY2000, BELCZYNSKI2002, FRYER2012, MULLER2016, MULLERMANDEL, SCHNEIDER2020, SCHNEIDER2020ALT], default = FRYER2012)
         #location.properties['--fryer-supernova-engine'] = 'DELAYED' #(options: [DELAYED, RAPID], default = DELAYED)
-        #location.properties['--kick-magnitude-distribution'] = 'MAXWELLIAN' #(options: [ZERO, FIXED, FLAT, MAXWELLIAN, BRAYELDRIDGE, MULLER2016, MULLER2016MAXWELLIAN, MULLERMANDEL], default = MAXWELLIAN)
-        location.properties['--kick-magnitude-sigma-CCSN-NS'] = 350 # (default = 250.000000 km s^-1 )
+        location.properties['--kick-magnitude-distribution'] = 'MAXWELLIAN' #(options: [ZERO, FIXED, FLAT, MAXWELLIAN, BRAYELDRIDGE, MULLER2016, MULLER2016MAXWELLIAN, MULLERMANDEL], default = MAXWELLIAN)
+        location.properties['--kick-magnitude-sigma-CCSN-NS'] = 300 # (default = 250.000000 km s^-1 )
         #location.properties['--kick-magnitude-sigma-ECSN'] = 30.0 # (default = 30.000000 km s^-1 )
         #location.properties['--kick-magnitude-sigma-USSN'] = 30.0 # (default = 30.000000 km s^-1 )
 
