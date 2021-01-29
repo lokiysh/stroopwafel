@@ -17,14 +17,25 @@ from stroopwafel_dev import sw, classes, prior, sampler, distributions, constant
 ### 
 #######################################################
 
+which = 6
+kickVal = [0, 10, 30, 50, 100, 200, 300][which]
+#print(kickVal)
+#print(type(kickVal))
+
+
 ### Set default stroopwafel inputs - these are overwritten by any command-line arguments
 
-num_systems = 10000                 # Number of binary systems to evolve                                  
-output_folder = '/home/rwillcox/output_oz101/nsk_Models/uniform1.75-maxwellian300/' # Location of output folder (relative to cwd)                         
-random_seed_base = 1567             # The initial random seed to increment from                           
-num_cores = 25                      # Number of cores to parallelize over 
+num_systems = 20000                   # Number of binary systems to evolve                                  
+#output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/maxw265/' # Location of output folder (relative to cwd)                         
+#output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/doubMaxwVIC/' # Location of output folder (relative to cwd)                         
+#output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/snSplit/' # Location of output folder (relative to cwd)                         
+output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/deltaKicks/k'+str(kickVal)+'/' #smallRunsForPaperLowZ/uniform_Z-100/' # Location of output folder (relative to cwd)                         
+#output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/deltaKicks/k0/' #smallRunsForPaperLowZ/uniform_Z-100/' # Location of output folder (relative to cwd)                         
+print(output_folder)
+random_seed_base = 1253344          # The initial random seed to increment from                           
+num_cores = 8                       # Number of cores to parallelize over 
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
-run_on_hpc = True                   # Run on slurm based cluster HPC
+run_on_hpc = False                  # Run on slurm based cluster HPC
 time_request = None                 # Request HPC time-per-cpu in DD-HH:MM:SS - default is .15s/binary/cpu (only valid for HPC)
 debug = True                        # Show COMPAS output/errors
 num_per_batch = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
@@ -91,17 +102,43 @@ def update_properties(locations, dimensions):
         location.properties['--kick-mean-anomaly-1'] = np.random.uniform(0, 2 * np.pi)
         location.properties['--kick-mean-anomaly-2'] = np.random.uniform(0, 2 * np.pi)
 
-        #location.properties['--kick-magnitude-1'] = ss.maxwell(scale=300).rvs(1) # (default = 0.000000 km s^-1 )
-        #location.properties['--kick-magnitude-2'] = ss.maxwell(scale=300).rvs(1) # (default = 0.000000 km s^-1 )
+        location.properties['--evolve-unbound'] = 'TRUE'
+        location.properties['--remnant-mass-prescription'] = 'FRYER2012'  #(options: [HURLEY2000, BELCZYNSKI2002, FRYER2012, MULLER2016, MULLERMANDEL, SCHNEIDER2020, SCHNEIDER2020ALT], default = FRYER2012)
+
+        # Hobbs Maxwellian
+        #location.properties['--kick-magnitude-1'] = ss.maxwell(scale=265).rvs(1)[0] # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-2'] = ss.maxwell(scale=265).rvs(1)[0] # (default = 0.000000 km s^-1 )
+
+        # VIC Double Maxwellian 75, 316, .42
+        #sigma1 = 75
+        #sigma2 = 316
+        #w = .42
+        #bothVals = w*ss.maxwell(scale=sigma1).rvs(2) + (1-w)*ss.maxwell(scale=sigma2).rvs(2)
+        #location.properties['--kick-magnitude-1'] = bothVals[0] # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-2'] = bothVals[1] # (default = 0.000000 km s^-1 )
+
+        # Uniform
+        #location.properties['--kick-magnitude-1'] = location.properties['--kick-magnitude-2'] = np.uniform(0, 500)
+
+        # Default, split on SN
+        #location.properties['--kick-magnitude-sigma-CCSN-NS'] = 265 # (default = 250.000000 km s^-1 )
+        #location.properties['--kick-magnitude-sigma-ECSN'] = 30.0 # (default = 30.000000 km s^-1 )
+        #location.properties['--kick-magnitude-sigma-USSN'] = 30.0 # (default = 30.000000 km s^-1 )
+
+        # Delta
+        location.properties['--kick-magnitude-1'] = location.properties['--kick-magnitude-2'] = kickVal
+
+
+
+
+
+        #location.properties['--kick-magnitude-1'] =  # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-2'] =  # (default = 0.000000 km s^-1 )
         #location.properties['--kick-magnitude-random-1'] =  # (default = uniform random number [0.0, 1.0))
         #location.properties['--kick-magnitude-random-2'] =  # (default = uniform random number [0.0, 1.0))
 
-        #location.properties['--remnant-mass-prescription'] = 'FRYER2012'  #(options: [HURLEY2000, BELCZYNSKI2002, FRYER2012, MULLER2016, MULLERMANDEL, SCHNEIDER2020, SCHNEIDER2020ALT], default = FRYER2012)
         #location.properties['--fryer-supernova-engine'] = 'DELAYED' #(options: [DELAYED, RAPID], default = DELAYED)
-        location.properties['--kick-magnitude-distribution'] = 'MAXWELLIAN' #(options: [ZERO, FIXED, FLAT, MAXWELLIAN, BRAYELDRIDGE, MULLER2016, MULLER2016MAXWELLIAN, MULLERMANDEL], default = MAXWELLIAN)
-        location.properties['--kick-magnitude-sigma-CCSN-NS'] = 300 # (default = 250.000000 km s^-1 )
-        #location.properties['--kick-magnitude-sigma-ECSN'] = 30.0 # (default = 30.000000 km s^-1 )
-        #location.properties['--kick-magnitude-sigma-USSN'] = 30.0 # (default = 30.000000 km s^-1 )
+        #location.properties['--kick-magnitude-distribution'] = 'MAXWELLIAN' #(options: [ZERO, FIXED, FLAT, MAXWELLIAN, BRAYELDRIDGE, MULLER2016, MULLER2016MAXWELLIAN, MULLERMANDEL], default = MAXWELLIAN)
 
 
 ##############################################################################################################
