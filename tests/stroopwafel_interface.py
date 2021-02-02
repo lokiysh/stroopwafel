@@ -26,7 +26,7 @@ mc_only = True                      # Exclude adaptive importance sampling (curr
 run_on_hpc = False                  # Run on slurm based cluster HPC
 time_request = None                 # Request HPC time-per-cpu in DD-HH:MM:SS - default is .15s/binary/cpu (only valid for HPC)
 debug = True                        # Show COMPAS output/errors
-num_per_batch = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
+num_per_batch = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores. If mc_only = False, it is highly recommended to change it to a lower value (e.g. int(np.ceil(num_cores/100.)))
 
 ### User probably does not need to change these
 
@@ -114,26 +114,24 @@ def interesting_systems(batch):
     """
     try:
         folder = os.path.join(output_folder, batch['output_container'])
-        shutil.move(batch['grid_filename'], folder + '/grid_' + str(batch['number']) + '.csv')
-        system_parameters = pd.read_csv(folder + '/BSE_System_Parameters.csv', skiprows = 2)
-        system_parameters.rename(columns = lambda x: x.strip(), inplace = True)
-        seeds = system_parameters['SEED']
+        BSE_file = h5.File(folder + '/' + batch['output_container'] + '.h5')
+        system_parameters = BSE_file['BSE_System_Parameters']
+        seeds = system_parameters['SEED'][()]
         for index, sample in enumerate(batch['samples']):
             seed = seeds[index]
             sample.properties['SEED'] = seed
             sample.properties['is_hit'] = 0
             sample.properties['batch'] = batch['number']
-        double_compact_objects = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
-        double_compact_objects.rename(columns = lambda x: x.strip(), inplace = True)
-        #Generally, this is the line you would want to change.
-        dco = double_compact_objects[np.logical_and(double_compact_objects['Merges_Hubble_Time'] == 1, \
-            np.logical_and(double_compact_objects['Stellar_Type(1)'] == 14, double_compact_objects['Stellar_Type(2)'] == 14))]
-        interesting_systems_seeds = set(dco['SEED'])
+        double_compact_objects = BSE_file['BSE_Double_Compact_Objects']
+        dco = np.logical_and(double_compact_objects['Merges_Hubble_Time'][()] == 1, \
+            np.logical_and(double_compact_objects['Stellar_Type(1)'][()] == 14, double_compact_objects['Stellar_Type(2)'][()] == 14))
+        interesting_systems_seeds = set(double_compact_objects['SEED'][()][dco])
         for sample in batch['samples']:
             if sample.properties['SEED'] in interesting_systems_seeds:
                 sample.properties['is_hit'] = 1
+        BSE_file.close()
         return len(dco)
-    except IOError as error:
+    except KeyError as error:
         return 0
 
 def selection_effects(sw):
@@ -148,16 +146,16 @@ def selection_effects(sw):
         rows = []
         for distribution in sw.adapted_distributions:
             folder = os.path.join(output_folder, 'batch_' + str(int(distribution.mean.properties['batch'])))
-            dco_file = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
-            dco_file.rename(columns = lambda x: x.strip(), inplace = True)
-            row = dco_file.loc[dco_file['SEED'] == distribution.mean.properties['SEED']]
-            rows.append([row.iloc[0]['Mass(1)'], row.iloc[0]['Mass(2)']])
+            h5_file = h5.File(folder + '/' + 'batch_' + str(int(distribution.mean.properties['batch'])) + '.h5')
+            dco = h5_file['BSE_Double_Compact_Objects']
+            row = dco['SEED'][()] == distribution.mean.properties['SEED']
+            rows.append([dco['Mass(1)'][()][row], dco['Mass(2)'][()][row]])
             biased_masses.append(np.power(max(rows[-1]), 2.2))
         # update the weights
         mean = np.mean(biased_masses)
         for index, distribution in enumerate(sw.adapted_distributions):
             distribution.biased_weight = np.power(max(rows[index]), 2.2) / mean
-
+        
 def rejected_systems(locations, dimensions):
     """
     This method takes a list of locations and marks the systems which can be
