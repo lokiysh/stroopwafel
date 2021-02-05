@@ -17,8 +17,8 @@ from stroopwafel_dev import sw, classes, prior, sampler, distributions, constant
 ### 
 #######################################################
 
-which = 6
-kickVal = [0, 10, 30, 50, 100, 200, 300][which]
+#which = 6
+#kickVal = [0, 10, 30, 50, 100, 200, 300][which]
 #print(kickVal)
 #print(type(kickVal))
 
@@ -29,10 +29,12 @@ num_systems = 20000                   # Number of binary systems to evolve
 #output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/maxw265/' # Location of output folder (relative to cwd)                         
 #output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/doubMaxwVIC/' # Location of output folder (relative to cwd)                         
 #output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/snSplit/' # Location of output folder (relative to cwd)                         
-output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/deltaKicks/k'+str(kickVal)+'/' #smallRunsForPaperLowZ/uniform_Z-100/' # Location of output folder (relative to cwd)                         
+#output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/snSplitXlow/' # Location of output folder (relative to cwd)                         
+output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/Zsolar_20k/snSplitXlow_alpha0.1/' # Location of output folder (relative to cwd)                         
+#output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/deltaKicks/k'+str(kickVal)+'/' #smallRunsForPaperLowZ/uniform_Z-100/' # Location of output folder (relative to cwd)                         
 #output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/deltaKicks/k0/' #smallRunsForPaperLowZ/uniform_Z-100/' # Location of output folder (relative to cwd)                         
 print(output_folder)
-random_seed_base = 1253344          # The initial random seed to increment from                           
+random_seed_base = 1267844          # The initial random seed to increment from                           
 num_cores = 8                       # Number of cores to parallelize over 
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
 run_on_hpc = False                  # Run on slurm based cluster HPC
@@ -121,14 +123,15 @@ def update_properties(locations, dimensions):
         #location.properties['--kick-magnitude-1'] = location.properties['--kick-magnitude-2'] = np.uniform(0, 500)
 
         # Default, split on SN
-        #location.properties['--kick-magnitude-sigma-CCSN-NS'] = 265 # (default = 250.000000 km s^-1 )
-        #location.properties['--kick-magnitude-sigma-ECSN'] = 30.0 # (default = 30.000000 km s^-1 )
-        #location.properties['--kick-magnitude-sigma-USSN'] = 30.0 # (default = 30.000000 km s^-1 )
+        location.properties['--kick-magnitude-sigma-CCSN-NS'] = 265 # (default = 250.000000 km s^-1 )
+        location.properties['--kick-magnitude-sigma-ECSN'] = 10.0 # (default = 30.000000 km s^-1 )
+        location.properties['--kick-magnitude-sigma-USSN'] = 10.0 # (default = 30.000000 km s^-1 )
 
         # Delta
-        location.properties['--kick-magnitude-1'] = location.properties['--kick-magnitude-2'] = kickVal
+        #location.properties['--kick-magnitude-1'] = location.properties['--kick-magnitude-2'] = kickVal
 
 
+        location.properties['--common-envelope-alpha'] = 0.1 
 
 
 
