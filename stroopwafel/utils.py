@@ -3,7 +3,8 @@ import os
 import subprocess
 import csv
 from .classes import Location
-from .constants import *
+from . import constants # To use and iterate RANDOM_SEED
+from .constants import R_COEFF, ALPHA_IMF, R_SOL_TO_AU, ZSOL 
 import math
 
 def generate_grid(locations, filename):
@@ -18,6 +19,8 @@ def generate_grid(locations, filename):
     grid = []
     for location in locations:
         current_location = []
+        current_location.append('--random-seed ' + str(constants.RANDOM_SEED))
+        constants.RANDOM_SEED += 1
         for key, value in location.dimensions.items():
             if key.should_print:
                 current_location.append(key.name + ' ' + str(value))
@@ -91,17 +94,21 @@ def read_samples(filename, dimensions, only_hits = False):
         for sample in samples:
             if only_hits and int(sample['is_hit']) == 0:
                 continue
-            sample.update((k, float(v)) for k, v in sample.items())
+            try:
+                sample.update((k, float(v)) for k, v in sample.items())
+            except:
+                sample.update((k, str(v)) for k, v in sample.items())
             locations.append(Location.create_location(dimensions_hash, sample))
         return locations
 
-def generate_slurm_file(command, batch_num, output_folder):
+def generate_slurm_file(command, batch_num, output_folder, time_request):
     """
     Function that generates a slurm file to run the given command on helios batch
     IN:
         command (String) : The command to be run
         batch_bum (int) : Batch number, would be used to generate file name
         output_folder (Path) : Where to generate the output
+        time_request (String) : HPC wall time request
     OUT:
         slurm_file (String) : Path of the file generated
     """
@@ -113,17 +120,19 @@ def generate_slurm_file(command, batch_num, output_folder):
     writer.write("#!/bin/bash\n")
     writer.write("#SBATCH --mem-per-cpu=1024\n")
     writer.write("#SBATCH --output=output.out\n")
+    writer.write("#SBATCH --time=" + time_request + "\n") # Defaults to 20min
     writer.write(command + " > " + log_file + " \n")
     writer.close()
     return slurm_file
 
-def run_code(command, batch_num, output_folder, debug = False, run_on_helios = True):
+def run_code(command, batch_num, output_folder, time_request, debug = False, run_on_helios = True):
     """
     Function that runs the command specified on the command shell.
     IN:
         command list(String): A list of commands to be triggered along with the options
         batch_num (int) : The current batch number to generate the filename
         output_folder (Path) : Where to generate the output
+        time_request (String) : HPC wall time request
         debug (Boolean) : If true will print stuff to console
         run_on_helios (Boolean) : If true will generate slurm file to run on helios
     OUT:
@@ -137,7 +146,7 @@ def run_code(command, batch_num, output_folder, debug = False, run_on_helios = T
             stdout = stderr = None
         command_to_run = " ".join(str(v) for v in command)
         if run_on_helios:
-            slurm_file = generate_slurm_file(" ".join(str(v) for v in command), batch_num, output_folder)
+            slurm_file = generate_slurm_file(" ".join(str(v) for v in command), batch_num, output_folder, time_request)
             command_to_run = "sbatch -W -Q " + slurm_file
         else:
             log_folder = get_or_create_folder(output_folder, 'logs')
