@@ -18,33 +18,34 @@ class Dimension:
         self.sampler = sampler
         self.prior = prior
         self.should_print = should_print
-        if self.sampler.__name__ == sp.flat_in_log.__name__:
+        if self.sampler.__name__ == sp.flat_in_log.__name__:           # if we sample from a flat in log distribution, convert values to log-scale
             self.min_value = np.log10(min_value)
             self.max_value = np.log10(max_value)
-        elif self.sampler.__name__ == sp.uniform_in_sine.__name__:
+        elif self.sampler.__name__ == sp.uniform_in_sine.__name__:     # same, but for sine and cosine distributions
             self.min_value = -1
             self.max_value = 1
         elif self.sampler.__name__ == sp.uniform_in_cosine.__name__:
             self.min_value = -1
             self.max_value = 1
-    """
-    Function that samples the variable based on the given sampler class
-    IN:
-        num_samples (int) : number of samples required
-    OUT:
-        list(float) : samples
-    """
+
     def run_sampler(self, num_samples):
+        """
+        Function that samples the variable based on the given sampler class
+        IN:
+            num_samples (int) : number of samples required
+        OUT:
+            list(float) : samples
+        """
         return self.sampler(num_samples, x = self.min_value, y = self.max_value)
 
-    """
-    Function that returns which samples are within the bounds of this variables
-    IN:
-        sample (list(float)) : a list of points which we need to check if in bounds
-    OUT:
-        list(bool) : which of the given samples are within the bounds
-    """
     def is_sample_within_bounds(self, samples):
+        """
+        Function that returns which samples are within the bounds of this variables
+        IN:
+            sample (list(float)) : a list of points which we need to check if in bounds
+        OUT:
+            list(bool) : which of the given samples are within the bounds
+        """
         return (samples >= self.min_value) & (samples <= self.max_value)
 
     def __str__(self):
@@ -60,28 +61,28 @@ class Location:
         self.dimensions = dimensions
         self.properties = properties
 
-    """
-    This method creates a location instance when supplied with a dimension hash and the row of samples. 
-    Each key of the row which corresponds to a dimension goes to the dimensions property and the rest goes to the properties property
-    IN:
-        dimension_hash(dict(string, Dimension)) : Dictionary having key as a name of Dimension and mapping it to the Dimension object
-        row_hash(dict(string, float)) : Row we want to hash to
-    """
     @classmethod
     def create_location(cls, dimensions_hash, row_hash):
+        """
+        This method creates a location instance when supplied with a dimension hash and the row of samples.
+        Each key of the row which corresponds to a dimension goes to the dimensions property and the rest goes to the properties property
+        IN:
+            dimension_hash(dict(string, Dimension)) : Dictionary having key as a name of Dimension and mapping it to the Dimension object
+            row_hash(dict(string, float)) : Row we want to hash to
+        """
         dimensions = dict()
         properties = dict()
         for key, value in row_hash.items():
             if key in dimensions_hash:
-                dimensions[dimensions_hash[key]] = value
+                dimensions[dimensions_hash[key]] = value     # add data to dimension property if indicated by key
             else:
-                properties[key] = value
+                properties[key] = value                      # else, add data to properties property
         return Location(dimensions, properties)
 
-    """
-    Converts the current object of Location class to an array sorted by the key name
-    """
     def to_array(self):
+        """
+        Converts the current object of Location class to an array sorted by the key name
+        """
         array = []
         for dimension in sorted(self.dimensions.keys(), key = lambda d: d.name):
             array.append(self.dimensions[dimension])
@@ -90,34 +91,37 @@ class Location:
     def __str__(self):
         string = ''
         for dimension in self.dimensions.keys():
-            string += dimension.name + " : " + str(self.dimensions[dimension]) + ","
+            string += dimension.name + " : " + str(self.dimensions[dimension]) + ","  # create string with dimension name and data that can be printed for a clear overview
         return string
 
-    """
-    Converts back each value of the location to the original scale defined in the interface
-    """
-    def revert_variables_to_original_scales(self):
-        for dimension, value in self.dimensions.items():
-            if dimension.sampler.__name__ == sp.flat_in_log.__name__:
-                self.dimensions[dimension] = np.power(10, value)
-            elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
-                self.dimensions[dimension] = np.arcsin(value)
-            elif dimension.sampler.__name__ == sp.uniform_in_cosine.__name__:
-                self.dimensions[dimension] = np.arccos(value) - np.pi / 2
-
-    """
-    Converts each value of the location to the new transformed scale
-    """
     def transform_variables_to_new_scales(self):
+        """
+        Converts each value of the location to the new transformed scale to facilitate certain calculations
+        """
         for dimension, value in self.dimensions.items():
-            if dimension.sampler.__name__ == sp.flat_in_log.__name__:
+            if dimension.sampler.__name__ == sp.flat_in_log.__name__:          # for values sampled from flat-in-log distribution
                 self.dimensions[dimension] = np.log10(value)
-            elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:
+            elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:    # for values sampled from sine and cosine distributions
                 self.dimensions[dimension] = np.sin(value)
             elif dimension.sampler.__name__ == sp.uniform_in_cosine.__name__:
                 self.dimensions[dimension] = np.cos(value + np.pi / 2)
 
+    def revert_variables_to_original_scales(self):
+        """
+        Converts back each value of the location to the original scale defined in the interface
+        """
+        for dimension, value in self.dimensions.items():
+            if dimension.sampler.__name__ == sp.flat_in_log.__name__:          # for values sampled from flat-in-log distribution
+                self.dimensions[dimension] = np.power(10, value)
+            elif dimension.sampler.__name__ == sp.uniform_in_sine.__name__:    # for values sampled from sine and cosine distributions
+                self.dimensions[dimension] = np.arcsin(value)
+            elif dimension.sampler.__name__ == sp.uniform_in_cosine.__name__:
+                self.dimensions[dimension] = np.arccos(value) - np.pi / 2
+
     def calculate_prior_probability(self):
+        """
+        Determines the probability of a value drawn from its normalised prior distribution
+        """
         p = 1
         for dimension, value in self.dimensions.items():
             p *= dimension.prior(dimension, value)

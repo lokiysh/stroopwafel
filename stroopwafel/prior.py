@@ -1,27 +1,34 @@
 import numpy as np
 from .constants import *
 """
-This class defines the birth priors of the dimensions
+This class defines the prior/birth distributions of the dimensions
 """
 
 def uniform(dimension, value):
     """
-    Usual method to calculate priors probability.
+    method to calculate prior probabilities from a uniform distribution
     IN:
         dimension (Dimension) : The dimension to calculate the prior for
+        value (float) : The value at which we are calculating prior probability
     OUT:
         (float) : The prior probability
     """
     return 1.0 / (dimension.max_value - dimension.min_value)
 
 def flat_in_log(dimension, value):
-    #return 1 / (value * (np.log(dimension.max_value) - np.log(dimension.min_value)))
-    #This will assume that all values are already the log values
-    return 1.0 / (dimension.max_value - dimension.min_value)
+    """
+    method to calculate prior probabilities from a flat-in-log distribution
+    IN:
+        dimension (Dimension) : The dimension to calculate the prior for
+        value (float) : The value at which we are calculating prior probability
+    OUT:
+        (float) : The prior probability
+    """
+    return 1.0 / (dimension.max_value - dimension.min_value) # this will assume that all values are already the log values
 
 def kroupa(dimension, value):
     """
-    method to calculate priors probability for kroupa distributions
+    method to calculate prior probabilities from the kroupa mass function
     IN:
         dimension (Dimension) : The dimension to calculate the prior for
         value (float) : The value at which we are calculating prior probability
@@ -32,13 +39,23 @@ def kroupa(dimension, value):
     return norm_const * np.power(value, ALPHA_IMF)
 
 def uniform_in_sine(dimension, value):
-    #norm_const = 2
-    #return np.abs(np.cos(value)) / norm_const
-    #This will assume that all values are already in sin
-    return 1.0 / (dimension.max_value - dimension.min_value)
+    """
+    method to calculate prior probabilities from a uniform sine distribution
+    IN:
+        dimension (Dimension) : The dimension to calculate the prior for
+        value (float) : The value at which we are calculating prior probability
+    OUT:
+        (float) : The prior probability
+    """
+    return 1.0 / (dimension.max_value - dimension.min_value) # this will be a normalising constant equal to 1/2, assuming the values are in between -1 and 1
 
 def uniform_in_cosine(dimension, value):
-    #norm_const = 2
-    #return np.abs(np.cos(value)) / norm_const
-    #This will assume that all values are already in sin
-    return 1.0 / (dimension.max_value - dimension.min_value)
+    """
+    method to calculate prior probabilities from a uniform cosine distribution
+    IN:
+        dimension (Dimension) : The dimension to calculate the prior for
+        value (float) : The value at which we are calculating prior probability
+    OUT:
+        (float) : The prior probability
+    """
+    return 1.0 / (dimension.max_value - dimension.min_value) # this will be a normalising constant equal to 1/2, assuming the values are in between -1 and 1

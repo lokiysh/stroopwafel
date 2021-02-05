@@ -1,11 +1,11 @@
 import numpy as np
 from .constants import *
 """
-Defines different kinds of samplers
+Defines different kinds of sampling distributions for the initial properties
 """
 def uniform(num_samples, **kwargs):
     """
-     method to run a uniform sampling for the range [x, y)
+     method to sample from a uniform distribution in the range [x, y)
     IN:
         num_samples : number of samples to be returned
         x (float) : starting value
@@ -19,7 +19,7 @@ def uniform(num_samples, **kwargs):
 
 def flat_in_log(num_samples, **kwargs):
     """
-    method to run a flat_in_log sampling for the range[x, y]
+    method to sample from a flat_in_log distribution in the range[x, y]
     IN:
         num_samples : number of samples to be returned
         x (float) : starting value
@@ -27,14 +27,13 @@ def flat_in_log(num_samples, **kwargs):
     OUT:
         a list of samples in the range [x, y) considering power law distribution
     """
-    #This assumes that the values x and y are already the log values
     x = kwargs['x']
     y = kwargs['y']
-    return np.random.uniform(x, y, num_samples)
+    return np.random.uniform(x, y, num_samples)   # assumes that the values x and y are already in log-scale
 
 def flat(num_samples, **kwargs):
     """
-    method to run a sampling for a flat distribution
+    method to sample from a flat distribution
     IN:
         num_samples : number of samples to be returned
         x (float) : The flat value for sampling
@@ -42,11 +41,11 @@ def flat(num_samples, **kwargs):
         a list of num_samples zeros
     """
     x = kwargs['x']
-    return np.ones(num_samples) * x
+    return np.ones(num_samples) * x   # in a flat distribution each sample has an equal probability
 
 def kroupa(num_samples = 1, **kwargs):
     """
-    method to run a kroupa sampling for the range [x, y)
+    method to sample from the kroupa mass function in the range [x, y)
     IN:
         num_samples (int) : number of samples to be returned
         x (float) : starting value
@@ -60,7 +59,7 @@ def kroupa(num_samples = 1, **kwargs):
 
 def uniform_in_sine(num_samples, **kwargs):
     """
-    method to run a uniform sine sampling  useful for example in solid angles sampling
+    method to sample from a uniform sine distribution. useful for example in solid angles sampling
     IN:
         num_samples (int) : number of samples to be returned
         x (float) : starting value
@@ -70,12 +69,12 @@ def uniform_in_sine(num_samples, **kwargs):
     """
     x = kwargs['x']
     y = kwargs['y']
-    return np.random.uniform(x, y, num_samples)
+    return np.random.uniform(x, y, num_samples)  # assumes values to range from -1 and 1
 
 
 def uniform_in_cosine(num_samples, **kwargs):
     """
-    method to run a uniform cosine sampling  useful for example in solid angles sampling
+    method to sample from a uniform cosine distribution. useful for example in solid angles sampling
     IN:
         num_samples (int) : number of samples to be returned
         x (float) : starting value
@@ -85,4 +84,4 @@ def uniform_in_cosine(num_samples, **kwargs):
     """
     x = kwargs['x']
     y = kwargs['y']
-    return np.random.uniform(x, y, num_samples)
+    return np.random.uniform(x, y, num_samples)  # assumes value to range from -1 to 1
