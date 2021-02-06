@@ -2,6 +2,7 @@
 import os, sys
 import numpy as np
 import pandas as pd
+import h5py as h5
 import shutil
 import argparse
 import subprocess
@@ -26,7 +27,7 @@ mc_only = True                      # Exclude adaptive importance sampling (curr
 run_on_hpc = False                  # Run on slurm based cluster HPC
 time_request = None                 # Request HPC time-per-cpu in DD-HH:MM:SS - default is .15s/binary/cpu (only valid for HPC)
 debug = True                        # Show COMPAS output/errors
-num_per_batch = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores
+num_per_batch = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores. If mc_only = False, it is highly recommended to change it to a lower value (e.g. int(np.ceil(num_cores/100.)))
 
 ### User probably does not need to change these
 
@@ -35,6 +36,23 @@ executable = os.path.join(compas_root, 'src/COMPAS')                         # L
 h5copyFile = os.path.join(compas_root, 'postProcessing/Folders/H5/PythonScripts/h5copy.py') # Location of COMPAS h5copy File
 output_filename = 'samples.csv'                                              # Output filename for the stroopwafel samples
 np.random.seed(random_seed_base)                                             # Fix the random seed for the numpy calls
+
+
+### Command-line only arguments (those that do not work in the grid file)
+command_line_args = {
+        '--mode' : 'BSE',
+        '--logfile-type' : 'HDF5',
+        '--rlof-printing' : 'TRUE',
+        '--number-of-systems' : 10,
+        '--maximum-evolution-time' : 13700.0,
+        '--maximum-number-timestep-iterations' : 99999,
+        '--timestep-multiplier' : 1.0,
+        '--log-level' : 0,
+        '--debug-level' : 0,
+        '--hdf5-chunk-size' : 100000,
+        '--hdf5-buffer-size' : 1
+        }
+
 
 ##############################################################################################################
 ###
@@ -95,12 +113,105 @@ def update_properties(locations, dimensions):
         #location.properties['--kick-magnitude-random-1'] =  # (default = uniform random number [0.0, 1.0))
         #location.properties['--kick-magnitude-random-2'] =  # (default = uniform random number [0.0, 1.0))
 
-        #location.properties['--remnant-mass-prescription'] = 'FRYER2012'  #(options: [HURLEY2000, BELCZYNSKI2002, FRYER2012, MULLER2016, MULLERMANDEL, SCHNEIDER2020, SCHNEIDER2020ALT], default = FRYER2012)
-        #location.properties['--fryer-supernova-engine'] = 'DELAYED' #(options: [DELAYED, RAPID], default = DELAYED)
-        #location.properties['--kick-magnitude-distribution'] = 'MAXWELLIAN' #(options: [ZERO, FIXED, FLAT, MAXWELLIAN, BRAYELDRIDGE, MULLER2016, MULLER2016MAXWELLIAN, MULLERMANDEL], default = MAXWELLIAN)
-        #location.properties['--kick-magnitude-sigma-CCSN-NS'] = 350 # (default = 250.000000 km s^-1 )
-        #location.properties['--kick-magnitude-sigma-ECSN'] = 30.0 # (default = 30.000000 km s^-1 )
-        #location.properties['--kick-magnitude-sigma-USSN'] = 30.0 # (default = 30.000000 km s^-1 )
+
+
+
+        ### COMPAS Fiducial Model, from pythonSubmit.py
+        location.properties['--use-mass-loss'] = 'TRUE'
+        location.properties['--mass-transfer'] = 'TRUE'
+        location.properties['--pair-instability-supernovae'] = 'TRUE'
+        location.properties['--pulsational-pair-instability'] = 'TRUE'
+        location.properties['--common-envelope-allow-main-sequence-survive'] = 'TRUE'
+        location.properties['--allow-rlof-at-birth'] = 'TRUE'
+        #location.properties['--metallicity'] = 0.0142
+        location.properties['--common-envelope-alpha'] = 1.0
+        location.properties['--common-envelope-lambda'] = 0.1
+        location.properties['--common-envelope-slope-kruckow'] = -0.8333333333333334
+        location.properties['--common-envelope-alpha-thermal'] = 1.0
+        location.properties['--common-envelope-lambda-multiplier'] = 1.0
+        location.properties['--luminous-blue-variable-multiplier'] = 1.5
+        location.properties['--overall-wind-mass-loss-multiplier'] = 1.0
+        location.properties['--wolf-rayet-multiplier'] = 1.0
+        location.properties['--cool-wind-mass-loss-multiplier'] = 1.0
+        location.properties['--mass-transfer-fa'] = 0.5
+        location.properties['--mass-transfer-jloss'] = 1.0
+        #location.properties['--initial-mass-min'] = 5.0
+        #location.properties['--initial-mass-max'] = 150.0
+        #location.properties['--initial-mass-power'] = 0.0
+        #location.properties['--semi-major-axis-min'] = 0.01
+        #location.properties['--semi-major-axis-max'] = 1000.0
+        #location.properties['--mass-ratio-min'] = 0.01
+        #location.properties['--mass-ratio-max'] = 1.0
+        location.properties['--minimum-secondary-mass'] = 0.1
+        #location.properties['--eccentricity-min'] = 0.0
+        #location.properties['--eccentricity-max'] = 1.0
+        #location.properties['--metallicity-min'] = 0.0001
+        #location.properties['--metallicity-max'] = 0.03
+        location.properties['--pulsar-birth-magnetic-field-distribution-min'] = 11.0
+        location.properties['--pulsar-birth-magnetic-field-distribution-max'] = 13.0
+        location.properties['--pulsar-birth-spin-period-distribution-min'] = 10.0
+        location.properties['--pulsar-birth-spin-period-distribution-max'] = 100.0
+        location.properties['--pulsar-magnetic-field-decay-timescale'] = 1000.0
+        location.properties['--pulsar-magnetic-field-decay-massscale'] = 0.025
+        location.properties['--pulsar-minimum-magnetic-field'] = 8.0
+        #location.properties['--orbital-period-min'] = 1.1
+        #location.properties['--orbital-period-max'] = 1000
+        location.properties['--kick-magnitude-sigma-CCSN-NS'] = 265.0
+        location.properties['--kick-magnitude-sigma-CCSN-BH'] = 265.0
+        location.properties['--fix-dimensionless-kick-magnitude'] = -1
+        location.properties['--kick-direction-power'] = 0.0
+        #location.properties['--random-seed'] = 0
+        location.properties['--mass-transfer-thermal-limit-C'] = 10.0
+        location.properties['--eddington-accretion-factor'] = 1
+        location.properties['--pisn-lower-limit'] = 60.0
+        location.properties['--pisn-upper-limit'] = 135.0
+        location.properties['--ppi-lower-limit'] = 35.0
+        location.properties['--ppi-upper-limit'] = 60.0
+        location.properties['--maximum-neutron-star-mass'] = 2.5
+        location.properties['--kick-magnitude-sigma-ECSN'] = 30.0
+        location.properties['--kick-magnitude-sigma-USSN'] = 30.0
+        location.properties['--kick-scaling-factor'] = 1.0
+        location.properties['--maximum-mass-donor-nandez-ivanova'] = 2.0
+        location.properties['--common-envelope-recombination-energy-density'] = 15000000000000.0
+        location.properties['--common-envelope-mass-accretion-max'] = 0.1
+        location.properties['--common-envelope-mass-accretion-min'] = 0.04
+        location.properties['--zeta-main-sequence'] = 2.0
+        location.properties['--zeta-radiative-envelope-giant'] = 6.5
+        location.properties['--kick-magnitude-max'] = -1.0
+        location.properties['--muller-mandel-kick-multiplier-BH'] = 200.0
+        location.properties['--muller-mandel-kick-multiplier-NS'] = 400.0
+        location.properties['--neutrino-mass-loss-BH-formation-value'] = 0.1
+        location.properties['--case-BB-stability-prescription'] = 'ALWAYS_STABLE'
+        location.properties['--chemically-homogeneous-evolution'] = 'PESSIMISTIC'
+        location.properties['--luminous-blue-variable-prescription'] = 'BELCZYNSKI'
+        location.properties['--mass-loss-prescription'] = 'VINK'
+        location.properties['--mass-transfer-angular-momentum-loss-prescription'] = 'ISOTROPIC'
+        location.properties['--mass-transfer-accretion-efficiency-prescription'] = 'THERMAL'
+        location.properties['--mass-transfer-rejuvenation-prescription'] = 'STARTRACK'
+        #location.properties['--initial-mass-function'] = 'KROUPA'
+        #location.properties['--semi-major-axis-distribution'] = 'FLATINLOG'
+        #location.properties['--orbital-period-distribution'] = 'FLATINLOG'
+        #location.properties['--mass-ratio-distribution'] = 'FLAT'
+        #location.properties['--eccentricity-distribution'] = 'ZERO'
+        #location.properties['--metallicity-distribution'] = 'ZSOLAR'
+        location.properties['--rotational-velocity-distribution'] = 'ZERO'
+        location.properties['--remnant-mass-prescription'] = 'FRYER2012'
+        location.properties['--fryer-supernova-engine'] = 'DELAYED'
+        location.properties['--black-hole-kicks'] = 'FALLBACK'
+        location.properties['--kick-magnitude-distribution'] = 'MAXWELLIAN'
+        location.properties['--kick-direction'] = 'ISOTROPIC'
+        #location.properties['--output-path'] = /home/rwillcox/astro/compas/COMPAS/defaults
+        location.properties['--common-envelope-lambda-prescription'] = 'LAMBDA_NANJING'
+        location.properties['--stellar-zeta-prescription'] = 'SOBERMAN'
+        location.properties['--mass-transfer-thermal-limit-accretor'] = 'CFACTOR'
+        location.properties['--pulsational-pair-instability-prescription'] = 'MARCHANT'
+        location.properties['--neutron-star-equation-of-state'] = 'SSE'
+        location.properties['--pulsar-birth-magnetic-field-distribution'] = 'ZERO'
+        location.properties['--pulsar-birth-spin-period-distribution'] = 'ZERO'
+        location.properties['--common-envelope-mass-accretion-prescription'] = 'ZERO'
+        location.properties['--envelope-state-prescription'] = 'LEGACY'
+        location.properties['--neutrino-mass-loss-BH-formation'] = 'FIXED_MASS'
+
 
 
 ##############################################################################################################
@@ -120,26 +231,24 @@ def interesting_systems(batch):
     """
     try:
         folder = os.path.join(output_folder, batch['output_container'])
-        shutil.move(batch['grid_filename'], folder + '/grid_' + str(batch['number']) + '.csv')
-        system_parameters = pd.read_csv(folder + '/BSE_System_Parameters.csv', skiprows = 2)
-        system_parameters.rename(columns = lambda x: x.strip(), inplace = True)
-        seeds = system_parameters['SEED']
+        BSE_file = h5.File(folder + '/' + batch['output_container'] + '.h5')
+        system_parameters = BSE_file['BSE_System_Parameters']
+        seeds = system_parameters['SEED'][()]
         for index, sample in enumerate(batch['samples']):
             seed = seeds[index]
             sample.properties['SEED'] = seed
             sample.properties['is_hit'] = 0
             sample.properties['batch'] = batch['number']
-        double_compact_objects = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
-        double_compact_objects.rename(columns = lambda x: x.strip(), inplace = True)
-        #Generally, this is the line you would want to change.
-        dco = double_compact_objects[np.logical_and(double_compact_objects['Merges_Hubble_Time'] == 1, \
-            np.logical_and(double_compact_objects['Stellar_Type(1)'] == 14, double_compact_objects['Stellar_Type(2)'] == 14))]
-        interesting_systems_seeds = set(dco['SEED'])
+        double_compact_objects = BSE_file['BSE_Double_Compact_Objects']
+        dco = np.logical_and(double_compact_objects['Merges_Hubble_Time'][()] == 1, \
+            np.logical_and(double_compact_objects['Stellar_Type(1)'][()] == 14, double_compact_objects['Stellar_Type(2)'][()] == 14))
+        interesting_systems_seeds = set(double_compact_objects['SEED'][()][dco])
         for sample in batch['samples']:
             if sample.properties['SEED'] in interesting_systems_seeds:
                 sample.properties['is_hit'] = 1
+        BSE_file.close()
         return len(dco)
-    except IOError as error:
+    except KeyError as error:
         return 0
 
 def selection_effects(sw):
@@ -154,16 +263,16 @@ def selection_effects(sw):
         rows = []
         for distribution in sw.adapted_distributions:
             folder = os.path.join(output_folder, 'batch_' + str(int(distribution.mean.properties['batch'])))
-            dco_file = pd.read_csv(folder + '/BSE_Double_Compact_Objects.csv', skiprows = 2)
-            dco_file.rename(columns = lambda x: x.strip(), inplace = True)
-            row = dco_file.loc[dco_file['SEED'] == distribution.mean.properties['SEED']]
-            rows.append([row.iloc[0]['Mass(1)'], row.iloc[0]['Mass(2)']])
+            h5_file = h5.File(folder + '/' + 'batch_' + str(int(distribution.mean.properties['batch'])) + '.h5')
+            dco = h5_file['BSE_Double_Compact_Objects']
+            row = dco['SEED'][()] == distribution.mean.properties['SEED']
+            rows.append([dco['Mass(1)'][()][row], dco['Mass(2)'][()][row]])
             biased_masses.append(np.power(max(rows[-1]), 2.2))
         # update the weights
         mean = np.mean(biased_masses)
         for index, distribution in enumerate(sw.adapted_distributions):
             distribution.biased_weight = np.power(max(rows[index]), 2.2) / mean
-
+        
 def rejected_systems(locations, dimensions):
     """
     This method takes a list of locations and marks the systems which can be
@@ -221,6 +330,7 @@ if __name__ == '__main__':
     mc_only = namespace.mc_only                                        # If you dont want to do the refinement phase and just do random mc exploration
     output_filename = namespace.output_filename                        # The name of the output file
     output_folder = os.path.join(os.getcwd(), namespace.output_folder) # Name of the output folder
+    [extra_params.extend([key, val]) for key, val in command_line_args.items()]
 
     ### Run Stroopwafel with all the specified arguments and parameter distributions
     run_sw.run_stroopwafel(output_folder, output_filename, random_seed_base, 
