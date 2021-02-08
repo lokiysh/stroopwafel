@@ -6,9 +6,11 @@ from .classes import Location
 from .constants import *
 import math
 
+# THIS FUNCTION IS VERY COMPAS SPECIFIC
 def generate_grid(locations, filename):
     """
-    Function which generated a txt file with the locations specified
+    Function which generated a txt file with the locations specified.
+    This txt file is read in by COMPAS to initialize the systems so they can be evolved
     IN:
         locations (list[Location]) : list of locations to be printed in the file
         filename (string) : filename to save
@@ -18,18 +20,20 @@ def generate_grid(locations, filename):
     grid = []
     for location in locations:
         current_location = []
+        # For each sample, add the dimension header followed by its value to the grid
         for key, value in location.dimensions.items():
-            if key.should_print:
+            if key.should_print: # some dimensions are not recognised by COMPAS, so we don't add them to the grid
                 current_location.append(key.name + ' ' + str(value))
+        # For each sample, add the property header, followed by its value to the grid
         for key, value in location.properties.items():
-            if key in ['generation', 'gaussian']:
+            if key in ['generation', 'gaussian']: # if using AIS, don't add their specific properties
                 continue
             current_location.append(key + ' ' + str(value))
         grid.append(current_location)
     DELIMITER = ' '
     np.savetxt(filename, grid, fmt = "%s", delimiter = DELIMITER, comments = '')
 
-#copied from stack overflow
+# Copied from stack overflow
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '|', autosize = False):
     """
     Call in a loop to create terminal progress bar
@@ -54,13 +58,14 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
 
 def print_samples(samples, filename, mode):
     """
-    Function that prints all the hits to a file
+    Function that prints all the samples and hits to a file
     IN:
         samples(list(Location)): All the samples that need to be printed
         filename (String) : The filename that will be saved
         mode (Character) : Append mode / write mode / read mode, which mode to open the file with
     """
     with open(filename, mode) as file:
+        # For each sample, print the dimension, property headers along with their values
         for sample in samples:
             current_dict = {}
             for dimension in sorted(sample.dimensions.keys(), key = lambda d: d.name):
@@ -68,6 +73,7 @@ def print_samples(samples, filename, mode):
             for prop in sorted(sample.properties.keys()):
                 current_dict[prop] = sample.properties[prop]
             writer = csv.DictWriter(file, current_dict.keys())
+            # If we haven't written the first line yet, print the headers
             if file.tell() == 0:
                 writer.writeheader()
             writer.writerow(current_dict)
@@ -78,38 +84,43 @@ def read_samples(filename, dimensions, only_hits = False):
     IN:
         filename (String) : The filename that will be read
         dimensions (List(Dimension)) : List of dimensions to make variables
-        only_hits (Boolean) : If true it will only return the Locations which are target hits
+        only_hits (Boolean) : If true, it will only return the Locations which are target hits
     OUT:
         locations (List(Location)) : List of locations generated
     """
     with open(filename, newline = '') as file:
         samples = csv.DictReader(file)
         dimensions_hash = dict()
+        # Collect all headers
         for dimension in dimensions:
             dimensions_hash[dimension.name] = dimension
         locations = []
         for sample in samples:
+            # Make sure to only read in the hits if requested
             if only_hits and int(sample['is_hit']) == 0:
                 continue
-            sample.update((k, float(v)) for k, v in sample.items())
+            sample.update((k, float(v)) for k, v in sample.items()) # make sure the values are floats
             locations.append(Location.create_location(dimensions_hash, sample))
         return locations
 
+# I THINK THIS FUNCTION IS SLIGHTLY COMPAS SPECIFIC DUE TO THE LOG FILES (NOT REALLY SURE)
 def generate_slurm_file(command, batch_num, output_folder):
     """
-    Function that generates a slurm file to run the given command on helios batch
+    Function that generates a slurm file to run the given command on a computer cluster batch
     IN:
         command (String) : The command to be run
-        batch_bum (int) : Batch number, would be used to generate file name
+        batch_num (int) : Batch number, would be used to generate file name
         output_folder (Path) : Where to generate the output
     OUT:
         slurm_file (String) : Path of the file generated
     """
+    # The slurm files contain information about the slurm job and additional arguments passed to the external code
     slurm_folder = get_or_create_folder(output_folder, 'slurms')
     log_folder = get_or_create_folder(output_folder, 'logs')
     slurm_file = os.path.join(slurm_folder, "slurm_" + str(batch_num) + ".sh")
-    log_file = os.path.join(log_folder, "log_" + str(batch_num) + ".txt")
+    log_file = os.path.join(log_folder, "log_" + str(batch_num) + ".txt") # the log files contain information about the final state of each system
     writer = open(slurm_file, 'w')
+    # Add the slurm options
     writer.write("#!/bin/bash\n")
     writer.write("#SBATCH --mem-per-cpu=1024\n")
     writer.write("#SBATCH --output=output.out\n")
@@ -125,10 +136,11 @@ def run_code(command, batch_num, output_folder, debug = False, run_on_helios = T
         batch_num (int) : The current batch number to generate the filename
         output_folder (Path) : Where to generate the output
         debug (Boolean) : If true will print stuff to console
-        run_on_helios (Boolean) : If true will generate slurm file to run on helios
+        run_on_helios (Boolean) : If true will generate slurm file to run on computer cluster
     OUT:
         subprocess : An instance of subprocess created after running the command
     """
+    # To be honest, I'm not sure what this is exactly doing (I'll try to figure out later)
     if command != None:
         if not debug:
             stdout = subprocess.PIPE
@@ -167,8 +179,11 @@ def get_slurm_output(output_folder, batch_num):
 def get_or_create_folder(path, name):
     """
     Utility function to create a folder at a given path and name or return it if it already exists
-    path (String) : Path where it is created
-    name (String) : Name of the folder
+    IN:
+        path (Path) : Path where it is created
+        name (String) : Name of the folder
+    OUT:
+        (Path) : Path to the folder
     """
     folder = os.path.join(path, name)
     if not os.path.exists(folder):
@@ -176,7 +191,15 @@ def get_or_create_folder(path, name):
     return folder
 
 def print_distributions(filename, distributions):
+    """
+    Function that saves the information about the adapted distributions created
+    during the adaptation phase of the adaptive importance sampling algorithm
+    IN:
+        filename (String) : The filename that will be saved
+        distributions(list(Location)): All the adapted distributions that need to be printed
+    """
     with open(filename, 'w') as file:
+        # Print the mean and standard deviation of each distribution
         for distribution in distributions:
             current_dict = dict()
             for dimension, value in distribution.mean.dimensions.items():
@@ -184,18 +207,38 @@ def print_distributions(filename, distributions):
             for dimension, value in distribution.sigma.dimensions.items():
                 current_dict[dimension.name + '_sigma'] = value
             writer = csv.DictWriter(file, current_dict.keys())
+            # If we haven't written the first line yet, print the headers
             if file.tell() == 0:
                 writer.writeheader()
             writer.writerow(current_dict)
 
 def print_logs(output_folder, log_string, log_value):
+    """
+    Function that saves additional information about the run
+    IN:
+        output_folder (Path) : Where to generate the output
+        log_string (String) : name of the data that will be saved
+        log_value (Float) : value of the data that will be saved
+    """
     with open(os.path.join(output_folder, 'log.txt'), 'a') as file:
         file.write("%s = %f\n"%(log_string, log_value))
 
+# NOT PER SE COMPAS SPECIFIC, BUT CONFINED TO ASTRONOMY CODES
 def get_zams_radius(mass, metallicity):
-    metallicity_xi = math.log10(metallicity / ZSOL)
+    """
+    Function that determines the radius of a star at the start of the main-sequence
+    given its mass and metallicity
+    IN:
+        mass (float) : Initial mass of the star
+        metallicity (float) : Metallicity of the star
+    OUT:
+        (float) : Radius of the star in astronomical units
+    """
+    metallicity_xi = math.log10(metallicity / ZSOL) # convert metallicity to solar metallicities
     radius_coefficients = []
-    for coeff in R_COEFF:
+    # The relation between mass, metallicity and radius is approximated by
+    # a complicated function
+    for coeff in R_COEFF: # the values of R_COEFF can be found in constants.py
         value = 1
         total = 0
         for series in coeff:
@@ -211,11 +254,28 @@ def get_zams_radius(mass, metallicity):
     radius = top / bottom
     return radius * R_SOL_TO_AU
 
+# ALSO NOT PER SE COMPAS SPECIFIC, BUT CONFINED TO ASTRONOMY CODES
 def calculate_roche_lobe_radius(mass1, mass2):
-    q = mass1 / mass2
+    """
+    Function that calculates the size of the Roche Lobe given the initial stellar masses
+    IN:
+        mass1 (float) : Initial mass of the initially more massive star in the binary
+        mass2 (float) : Initial mass of the initially less massive star in the binary
+    OUT:
+        (float) : The Roche Lobe radius
+    """
+    q = mass1 / mass2 # calculate the mass ratio
     return 0.49 / (0.6 + pow(q, -2.0 / 3.0) * math.log(1.0 + pow(q, 1.0 / 3.0)))
 
+# AGAIN THIS WEIRD KROUPA STUFF THAT NEEDS FIGURING OUT
 def inverse_back(dimension, inverse):
+    """
+    IN:
+        dimension (dict(Dimension : float)) : dictionary of mapping between class Dimension and its float value
+        inverse (float) :
+    OUT:
+        (float) :
+    """
     norm_factor = (ALPHA_IMF + 1) / (pow(dimension.max_value, ALPHA_IMF + 1) - pow(dimension.min_value, ALPHA_IMF + 1))
     return norm_factor / pow(inverse * (pow(norm_factor / dimension.max_value, 1 / -ALPHA_IMF) \
         - pow(norm_factor / dimension.min_value, 1 / -ALPHA_IMF)) \
