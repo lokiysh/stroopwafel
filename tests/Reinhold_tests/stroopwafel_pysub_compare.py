@@ -16,15 +16,15 @@ from stroopwafel_dev import sw, classes, prior, sampler, distributions, constant
 ### For User Instructions, see 'docs/sampling.md'
 ### 
 #######################################################
-
+xx = 9
 ### Set default stroopwafel inputs - these are overwritten by any command-line arguments
 
-num_systems = 1000                  # Number of binary systems to evolve                                  
-output_folder = 'output/'           # Location of output folder (relative to cwd)                         
-random_seed_base = 0                # The initial random seed to increment from                           
-num_cores = 4                       # Number of cores to parallelize over 
+num_systems = 100000                # Number of binary systems to evolve                                  
+output_folder = '/home/rwillcox/compas/COMPAS/outputs/test_pysub_in_sw/stroop/stroop'+str(xx) # Location of output folder (relative to cwd)                         
+random_seed_base = xx                # The initial random seed to increment from                           
+num_cores = 25                      # Number of cores to parallelize over 
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
-run_on_hpc = False                  # Run on slurm based cluster HPC
+run_on_hpc = True                   # Run on slurm based cluster HPC
 time_request = None                 # Request HPC time-per-cpu in DD-HH:MM:SS - default is .15s/binary/cpu (only valid for HPC)
 debug = True                        # Show COMPAS output/errors
 num_per_batch = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores. If mc_only = False, it is highly recommended to change it to a lower value (e.g. int(np.ceil(num_cores/100.)))
@@ -77,8 +77,8 @@ def create_dimensions():
     OUT:
         As Output, this should return a list containing all the instances of Dimension class.
     """
-    m1 = classes.Dimension('--initial-mass-1', 5, 100, sampler.kroupa, prior.kroupa)
-    q = classes.Dimension('q', 0.1, 1, sampler.uniform, prior.uniform, should_print = False)
+    m1 = classes.Dimension('--initial-mass-1', 5, 150, sampler.kroupa, prior.kroupa)
+    q = classes.Dimension('q', 0.01, 1, sampler.uniform, prior.uniform, should_print = False)
     a = classes.Dimension('--semi-major-axis', .01, 1000, sampler.flat_in_log, prior.flat_in_log) 
     return [m1, q, a ]
 
@@ -101,8 +101,6 @@ def update_properties(locations, dimensions):
         location.properties['--initial-mass-2'] = location.dimensions[m1] * location.dimensions[q]
         location.properties['--metallicity'] = constants.METALLICITY_SOL
         location.properties['--eccentricity'] = 0
-        location.properties['--evolve-unbound-systems'] = 'TRUE'
-
         location.properties['--kick-theta-1'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
         location.properties['--kick-theta-2'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
         location.properties['--kick-phi-1'] = np.random.uniform(0, 2 * np.pi)
@@ -114,7 +112,6 @@ def update_properties(locations, dimensions):
         #location.properties['--kick-magnitude-2'] =  # (default = 0.000000 km s^-1 )
         #location.properties['--kick-magnitude-random-1'] =  # (default = uniform random number [0.0, 1.0))
         #location.properties['--kick-magnitude-random-2'] =  # (default = uniform random number [0.0, 1.0))
-
 
 
 
@@ -275,7 +272,7 @@ def selection_effects(sw):
         mean = np.mean(biased_masses)
         for index, distribution in enumerate(sw.adapted_distributions):
             distribution.biased_weight = np.power(max(rows[index]), 2.2) / mean
-
+        
 def rejected_systems(locations, dimensions):
     """
     This method takes a list of locations and marks the systems which can be
