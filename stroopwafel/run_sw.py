@@ -36,8 +36,8 @@ def run_stroopwafel(output_folder, output_filename, random_seed_base,
         grid_filename = os.path.join(output_folder, 'grid_' + str(batch_num) + '.csv')
         output_container = 'batch_' + str(batch_num)
         exe_args = [executable, '--grid', grid_filename, '--output-container', output_container, '--output-path', output_folder]
-        for params in extra_params:
-            exe_args.extend(params.split("="))
+        #for params in extra_params:
+        exe_args.extend(extra_params)
         batch['grid_filename'] = grid_filename
         batch['output_container'] = output_container
         return exe_args
@@ -61,14 +61,14 @@ def run_stroopwafel(output_folder, output_filename, random_seed_base,
     sw_object.initialize(dimensions, interesting_systems, configure_code_run, rejected_systems, update_properties_method = update_properties)
 
 
-    intial_pdf = distributions.InitialDistribution(dimensions)
+    initial_pdf = distributions.InitialDistribution(dimensions)
 
     # STEP 4: Run the 4 phases of stroopwafel
-    sw_object.explore(intial_pdf) #Pass in the initial distribution for exploration phase
+    sw_object.explore(initial_pdf) #Pass in the initial distribution for exploration phase
     if not mc_only:
         sw_object.adapt(n_dimensional_distribution_type = distributions.Gaussian) #Adaptaion phase, tell stroopwafel what kind of distribution you would like to create instrumental distributions
         # Do selection effects
-        selection_effects(sw)
+        #selection_effects(sw_object)
         sw_object.refine() #Stroopwafel will draw samples from the adapted distributions
         sw_object.postprocess(distributions.Gaussian, only_hits = False) #Run it to create weights, if you want only hits in the output, then make only_hits = True
 

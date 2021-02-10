@@ -1,6 +1,7 @@
 #!/usr/bin/env python 
 import os, sys
 import numpy as np
+import scipy.stats as ss
 import pandas as pd
 import h5py as h5
 import shutil
@@ -19,12 +20,19 @@ from stroopwafel_dev import sw, classes, prior, sampler, distributions, constant
 
 ### Set default stroopwafel inputs - these are overwritten by any command-line arguments
 
-num_systems = 1000                  # Number of binary systems to evolve                                  
-output_folder = 'output/'           # Location of output folder (relative to cwd)                         
-random_seed_base = 0                # The initial random seed to increment from                           
-num_cores = 4                       # Number of cores to parallelize over 
+num_systems = 20000                   # Number of binary systems to evolve                                  
+#output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/maxw265/' # Location of output folder (relative to cwd)                         
+#output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/doubMaxwVIC/' # Location of output folder (relative to cwd)                         
+#output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/snSplit/' # Location of output folder (relative to cwd)                         
+#output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/snSplitXlow/' # Location of output folder (relative to cwd)                         
+output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/smallRunsForPaper/Zsolar_20k/snSplitXlow_alpha0.1/' # Location of output folder (relative to cwd)                         
+#output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/deltaKicks/k'+str(kickVal)+'/' #smallRunsForPaperLowZ/uniform_Z-100/' # Location of output folder (relative to cwd)                         
+#output_folder = '/home/rwillcox/astro/NS_natal_kicks/data/compas_runs/modelRuns/deltaKicks/k0/' #smallRunsForPaperLowZ/uniform_Z-100/' # Location of output folder (relative to cwd)                         
+print(output_folder)
+random_seed_base = 1267844          # The initial random seed to increment from                           
+num_cores = 8                       # Number of cores to parallelize over 
 mc_only = True                      # Exclude adaptive importance sampling (currently not implemented, leave set to True)
-run_on_hpc = False                  # Run on slurm based cluster HPC
+run_on_hpc = True                   # Run on slurm based cluster HPC
 time_request = None                 # Request HPC time-per-cpu in DD-HH:MM:SS - default is .15s/binary/cpu (only valid for HPC)
 debug = True                        # Show COMPAS output/errors
 num_per_batch = int(np.ceil(num_systems/num_cores)) # Number of binaries per batch, default num systems per num cores. If mc_only = False, it is highly recommended to change it to a lower value (e.g. int(np.ceil(num_cores/100.)))
@@ -77,8 +85,8 @@ def create_dimensions():
     OUT:
         As Output, this should return a list containing all the instances of Dimension class.
     """
-    m1 = classes.Dimension('--initial-mass-1', 5, 100, sampler.kroupa, prior.kroupa)
-    q = classes.Dimension('q', 0.1, 1, sampler.uniform, prior.uniform, should_print = False)
+    m1 = classes.Dimension('--initial-mass-1', 5, 150, sampler.kroupa, prior.kroupa)
+    q = classes.Dimension('q', 0.01, 1, sampler.uniform, prior.uniform, should_print = False)
     a = classes.Dimension('--semi-major-axis', .01, 1000, sampler.flat_in_log, prior.flat_in_log) 
     return [m1, q, a ]
 
@@ -101,8 +109,6 @@ def update_properties(locations, dimensions):
         location.properties['--initial-mass-2'] = location.dimensions[m1] * location.dimensions[q]
         location.properties['--metallicity'] = constants.METALLICITY_SOL
         location.properties['--eccentricity'] = 0
-        location.properties['--evolve-unbound-systems'] = 'TRUE'
-
         location.properties['--kick-theta-1'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
         location.properties['--kick-theta-2'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
         location.properties['--kick-phi-1'] = np.random.uniform(0, 2 * np.pi)
@@ -110,11 +116,41 @@ def update_properties(locations, dimensions):
         location.properties['--kick-mean-anomaly-1'] = np.random.uniform(0, 2 * np.pi)
         location.properties['--kick-mean-anomaly-2'] = np.random.uniform(0, 2 * np.pi)
 
+        location.properties['--evolve-unbound'] = 'TRUE'
+        location.properties['--remnant-mass-prescription'] = 'FRYER2012'  #(options: [HURLEY2000, BELCZYNSKI2002, FRYER2012, MULLER2016, MULLERMANDEL, SCHNEIDER2020, SCHNEIDER2020ALT], default = FRYER2012)
+
+        # Hobbs Maxwellian
+        #location.properties['--kick-magnitude-1'] = ss.maxwell(scale=265).rvs(1)[0] # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-2'] = ss.maxwell(scale=265).rvs(1)[0] # (default = 0.000000 km s^-1 )
+
+        # VIC Double Maxwellian 75, 316, .42
+        #sigma1 = 75
+        #sigma2 = 316
+        #w = .42
+        #bothVals = w*ss.maxwell(scale=sigma1).rvs(2) + (1-w)*ss.maxwell(scale=sigma2).rvs(2)
+        #location.properties['--kick-magnitude-1'] = bothVals[0] # (default = 0.000000 km s^-1 )
+        #location.properties['--kick-magnitude-2'] = bothVals[1] # (default = 0.000000 km s^-1 )
+
+        # Uniform
+        #location.properties['--kick-magnitude-1'] = location.properties['--kick-magnitude-2'] = np.uniform(0, 500)
+
+        # Default, split on SN
+        location.properties['--kick-magnitude-sigma-CCSN-NS'] = 265 # (default = 250.000000 km s^-1 )
+        location.properties['--kick-magnitude-sigma-ECSN'] = 10.0 # (default = 30.000000 km s^-1 )
+        location.properties['--kick-magnitude-sigma-USSN'] = 10.0 # (default = 30.000000 km s^-1 )
+
+        # Delta
+        #location.properties['--kick-magnitude-1'] = location.properties['--kick-magnitude-2'] = kickVal
+
+
+        location.properties['--common-envelope-alpha'] = 0.1 
+
+
+
         #location.properties['--kick-magnitude-1'] =  # (default = 0.000000 km s^-1 )
         #location.properties['--kick-magnitude-2'] =  # (default = 0.000000 km s^-1 )
         #location.properties['--kick-magnitude-random-1'] =  # (default = uniform random number [0.0, 1.0))
         #location.properties['--kick-magnitude-random-2'] =  # (default = uniform random number [0.0, 1.0))
-
 
 
 
@@ -275,7 +311,7 @@ def selection_effects(sw):
         mean = np.mean(biased_masses)
         for index, distribution in enumerate(sw.adapted_distributions):
             distribution.biased_weight = np.power(max(rows[index]), 2.2) / mean
-
+        
 def rejected_systems(locations, dimensions):
     """
     This method takes a list of locations and marks the systems which can be
