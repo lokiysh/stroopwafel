@@ -1,11 +1,12 @@
 #!/usr/bin/env python 
 import os, sys
-import numpy as np
-import pandas as pd
-import h5py as h5
 import shutil
 import argparse
 import subprocess
+import h5py as h5
+import numpy as np
+import pandas as pd
+import scipy.stats as ss    # Only necessary for some distributions
 
 sys.path.append(os.environ.get('SW_ROOT')) # FOR TESTING ONLY - TODO: delete this line and the line below after, restore following line
 from stroopwafel_dev import sw, classes, prior, sampler, distributions, constants, utils, run_sw
@@ -38,19 +39,130 @@ output_filename = 'samples.csv'                                              # O
 np.random.seed(random_seed_base)                                             # Fix the random seed for the numpy calls
 
 
-### Command-line only arguments (those that do not work in the grid file)
+### Command-line only arguments 
+"""
+Include here any COMPAS parameters which are constant for the entire run. 
+These wil be entered as command line arguments, not in the grid file, and
+will show up correctly in the Run_Details file. This will also reduce the
+diskspace of the grid files. 
+"""
 command_line_args = {
         '--mode' : 'BSE',
         '--logfile-type' : 'HDF5',
         '--rlof-printing' : 'TRUE',
-        '--number-of-systems' : 10,
+        #'--number-of-systems' : 10,
         '--maximum-evolution-time' : 13700.0,
         '--maximum-number-timestep-iterations' : 99999,
         '--timestep-multiplier' : 1.0,
         '--log-level' : 0,
         '--debug-level' : 0,
         '--hdf5-chunk-size' : 100000,
-        '--hdf5-buffer-size' : 1
+        '--hdf5-buffer-size' : 1,
+        #'--metallicity' : constants.METALLICITY_SOL,
+        #'--evolve-unbound-systems' : 'TRUE',
+        #'--kick-magnitude-1' :  # (default = 0.000000 km s^-1 ),
+        #'--kick-magnitude-2' :  # (default = 0.000000 km s^-1 ),
+        #'--kick-magnitude-random-1' :  # (default = uniform random number [0.0, 1.0)),
+        #'--kick-magnitude-random-2' :  # (default = uniform random number [0.0, 1.0)),
+        ### COMPAS Fiducial Model, from pythonSubmit.py,
+        '--use-mass-loss' : 'TRUE',
+        '--mass-transfer' : 'TRUE',
+        '--pair-instability-supernovae' : 'TRUE',
+        '--pulsational-pair-instability' : 'TRUE',
+        '--common-envelope-allow-main-sequence-survive' : 'TRUE',
+        '--allow-rlof-at-birth' : 'TRUE',
+        #'--metallicity' : 0.0142,
+        '--common-envelope-alpha' : 1.0,
+        '--common-envelope-lambda' : 0.1,
+        '--common-envelope-slope-kruckow' : -0.8333333333333334,
+        '--common-envelope-alpha-thermal' : 1.0,
+        '--common-envelope-lambda-multiplier' : 1.0,
+        '--luminous-blue-variable-multiplier' : 1.5,
+        '--overall-wind-mass-loss-multiplier' : 1.0,
+        '--wolf-rayet-multiplier' : 1.0,
+        '--cool-wind-mass-loss-multiplier' : 1.0,
+        '--mass-transfer-fa' : 0.5,
+        '--mass-transfer-jloss' : 1.0,
+        #'--initial-mass-min' : 5.0,
+        #'--initial-mass-max' : 150.0,
+        #'--initial-mass-power' : 0.0,
+        #'--semi-major-axis-min' : 0.01,
+        #'--semi-major-axis-max' : 1000.0,
+        #'--mass-ratio-min' : 0.01,
+        #'--mass-ratio-max' : 1.0,
+        #'--kick-theta-1' : np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   ,
+        #'--kick-theta-2' : np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   ,
+        #'--kick-phi-1' : np.random.uniform(0, 2 * np.pi),
+        #'--kick-phi-2' : np.random.uniform(0, 2 * np.pi),
+        #'--kick-mean-anomaly-1' : np.random.uniform(0, 2 * np.pi),
+        #'--kick-mean-anomaly-2' : np.random.uniform(0, 2 * np.pi),
+        '--minimum-secondary-mass' : 0.1,
+        #'--eccentricity-min' : 0.0,
+        #'--eccentricity-max' : 1.0,
+        #'--metallicity-min' : 0.0001,
+        #'--metallicity-max' : 0.03,
+        '--pulsar-birth-magnetic-field-distribution-min' : 11.0,
+        '--pulsar-birth-magnetic-field-distribution-max' : 13.0,
+        '--pulsar-birth-spin-period-distribution-min' : 10.0,
+        '--pulsar-birth-spin-period-distribution-max' : 100.0,
+        '--pulsar-magnetic-field-decay-timescale' : 1000.0,
+        '--pulsar-magnetic-field-decay-massscale' : 0.025,
+        '--pulsar-minimum-magnetic-field' : 8.0,
+        #'--orbital-period-min' : 1.1,
+        #'--orbital-period-max' : 1000,
+        '--kick-magnitude-sigma-CCSN-NS' : 265.0,
+        '--kick-magnitude-sigma-CCSN-BH' : 265.0,
+        '--fix-dimensionless-kick-magnitude' : -1,
+        '--kick-direction-power' : 0.0,
+        #'--random-seed' : 0,
+        '--mass-transfer-thermal-limit-C' : 10.0,
+        '--eddington-accretion-factor' : 1,
+        '--pisn-lower-limit' : 60.0,
+        '--pisn-upper-limit' : 135.0,
+        '--ppi-lower-limit' : 35.0,
+        '--ppi-upper-limit' : 60.0,
+        '--maximum-neutron-star-mass' : 2.5,
+        '--kick-scaling-factor' : 1.0,
+        '--maximum-mass-donor-nandez-ivanova' : 2.0,
+        '--common-envelope-recombination-energy-density' : 15000000000000.0,
+        '--common-envelope-mass-accretion-max' : 0.1,
+        '--common-envelope-mass-accretion-min' : 0.04,
+        '--zeta-main-sequence' : 2.0,
+        '--zeta-radiative-envelope-giant' : 6.5,
+        '--kick-magnitude-max' : -1.0,
+        '--muller-mandel-kick-multiplier-BH' : 200.0,
+        '--muller-mandel-kick-multiplier-NS' : 400.0,
+        '--neutrino-mass-loss-BH-formation-value' : 0.1,
+        '--case-BB-stability-prescription' : 'ALWAYS_STABLE',
+        '--chemically-homogeneous-evolution' : 'PESSIMISTIC',
+        '--luminous-blue-variable-prescription' : 'BELCZYNSKI',
+        '--mass-loss-prescription' : 'VINK',
+        '--mass-transfer-angular-momentum-loss-prescription' : 'ISOTROPIC',
+        '--mass-transfer-accretion-efficiency-prescription' : 'THERMAL',
+        '--mass-transfer-rejuvenation-prescription' : 'STARTRACK',
+        #'--initial-mass-function' : 'KROUPA',
+        #'--semi-major-axis-distribution' : 'FLATINLOG',
+        #'--orbital-period-distribution' : 'FLATINLOG',
+        #'--mass-ratio-distribution' : 'FLAT',
+        #'--eccentricity-distribution' : 'ZERO',
+        #'--metallicity-distribution' : 'ZSOLAR',
+        '--rotational-velocity-distribution' : 'ZERO',
+        '--remnant-mass-prescription' : 'FRYER2012',
+        '--fryer-supernova-engine' : 'DELAYED',
+        '--black-hole-kicks' : 'FALLBACK',
+        '--kick-magnitude-distribution' : 'MAXWELLIAN',
+        '--kick-direction' : 'ISOTROPIC',
+        #'--output-path' : /home/rwillcox/astro/compas/COMPAS/defaults,
+        '--common-envelope-lambda-prescription' : 'LAMBDA_NANJING',
+        '--stellar-zeta-prescription' : 'SOBERMAN',
+        '--mass-transfer-thermal-limit-accretor' : 'CFACTOR',
+        '--pulsational-pair-instability-prescription' : 'MARCHANT',
+        '--neutron-star-equation-of-state' : 'SSE',
+        '--pulsar-birth-magnetic-field-distribution' : 'ZERO',
+        '--pulsar-birth-spin-period-distribution' : 'ZERO',
+        '--common-envelope-mass-accretion-prescription' : 'ZERO',
+        '--envelope-state-prescription' : 'LEGACY',
+        '--neutrino-mass-loss-BH-formation' : 'FIXED_MASS',
         }
 
 
@@ -77,17 +189,20 @@ def create_dimensions():
     OUT:
         As Output, this should return a list containing all the instances of Dimension class.
     """
-    m1 = classes.Dimension('--initial-mass-1', 5, 100, sampler.kroupa, prior.kroupa)
-    q = classes.Dimension('q', 0.1, 1, sampler.uniform, prior.uniform, should_print = False)
+    m1 = classes.Dimension('--initial-mass-1', 5, 150, sampler.kroupa, prior.kroupa)
+    q = classes.Dimension('q', 0.01, 1, sampler.uniform, prior.uniform, should_print = False)
     a = classes.Dimension('--semi-major-axis', .01, 1000, sampler.flat_in_log, prior.flat_in_log) 
     return [m1, q, a ]
 
 def update_properties(locations, dimensions):
     """
-    This function creates Stroopwafel Locations, which are all the parameters which do not need to be "stroopwafelized",
-    but which should still be included in the gridfile. This includes constants, distribution choices, or random numbers
-    which do not contribute to the AIS resampling. This also includes dependent variables, such as the mass of the secondary
-    (when we would like to stroopwafelize the primary mass and mass ratio). 
+    This function creates Stroopwafel Locations, which are all the parameters which are randomly 
+    sampled and which should be included in the gridfile, but do not need to be "stroopwafelized". 
+    This includes dependent variables, such as the mass of the secondary which do not contribute 
+    to the AIS resampling. (when we would like to stroopwafelize the primary mass and mass ratio). 
+
+    This does not include any parameters which will have a fixed value, including constants or 
+    distribution choices. Those should be specified above, in command_line_args. 
 
     Values here can be constants, strings, or numpy random variables (of size 1). 
     IN:
@@ -101,119 +216,6 @@ def update_properties(locations, dimensions):
         location.properties['--initial-mass-2'] = location.dimensions[m1] * location.dimensions[q]
         location.properties['--metallicity'] = constants.METALLICITY_SOL
         location.properties['--eccentricity'] = 0
-        location.properties['--evolve-unbound-systems'] = 'TRUE'
-
-        location.properties['--kick-theta-1'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
-        location.properties['--kick-theta-2'] = np.arccos(np.random.uniform(-1, 1)) - np.pi / 2   
-        location.properties['--kick-phi-1'] = np.random.uniform(0, 2 * np.pi)
-        location.properties['--kick-phi-2'] = np.random.uniform(0, 2 * np.pi)
-        location.properties['--kick-mean-anomaly-1'] = np.random.uniform(0, 2 * np.pi)
-        location.properties['--kick-mean-anomaly-2'] = np.random.uniform(0, 2 * np.pi)
-
-        #location.properties['--kick-magnitude-1'] =  # (default = 0.000000 km s^-1 )
-        #location.properties['--kick-magnitude-2'] =  # (default = 0.000000 km s^-1 )
-        #location.properties['--kick-magnitude-random-1'] =  # (default = uniform random number [0.0, 1.0))
-        #location.properties['--kick-magnitude-random-2'] =  # (default = uniform random number [0.0, 1.0))
-
-
-
-
-
-        ### COMPAS Fiducial Model, from pythonSubmit.py
-        location.properties['--use-mass-loss'] = 'TRUE'
-        location.properties['--mass-transfer'] = 'TRUE'
-        location.properties['--pair-instability-supernovae'] = 'TRUE'
-        location.properties['--pulsational-pair-instability'] = 'TRUE'
-        location.properties['--common-envelope-allow-main-sequence-survive'] = 'TRUE'
-        location.properties['--allow-rlof-at-birth'] = 'TRUE'
-        #location.properties['--metallicity'] = 0.0142
-        location.properties['--common-envelope-alpha'] = 1.0
-        location.properties['--common-envelope-lambda'] = 0.1
-        location.properties['--common-envelope-slope-kruckow'] = -0.8333333333333334
-        location.properties['--common-envelope-alpha-thermal'] = 1.0
-        location.properties['--common-envelope-lambda-multiplier'] = 1.0
-        location.properties['--luminous-blue-variable-multiplier'] = 1.5
-        location.properties['--overall-wind-mass-loss-multiplier'] = 1.0
-        location.properties['--wolf-rayet-multiplier'] = 1.0
-        location.properties['--cool-wind-mass-loss-multiplier'] = 1.0
-        location.properties['--mass-transfer-fa'] = 0.5
-        location.properties['--mass-transfer-jloss'] = 1.0
-        #location.properties['--initial-mass-min'] = 5.0
-        #location.properties['--initial-mass-max'] = 150.0
-        #location.properties['--initial-mass-power'] = 0.0
-        #location.properties['--semi-major-axis-min'] = 0.01
-        #location.properties['--semi-major-axis-max'] = 1000.0
-        #location.properties['--mass-ratio-min'] = 0.01
-        #location.properties['--mass-ratio-max'] = 1.0
-        location.properties['--minimum-secondary-mass'] = 0.1
-        #location.properties['--eccentricity-min'] = 0.0
-        #location.properties['--eccentricity-max'] = 1.0
-        #location.properties['--metallicity-min'] = 0.0001
-        #location.properties['--metallicity-max'] = 0.03
-        location.properties['--pulsar-birth-magnetic-field-distribution-min'] = 11.0
-        location.properties['--pulsar-birth-magnetic-field-distribution-max'] = 13.0
-        location.properties['--pulsar-birth-spin-period-distribution-min'] = 10.0
-        location.properties['--pulsar-birth-spin-period-distribution-max'] = 100.0
-        location.properties['--pulsar-magnetic-field-decay-timescale'] = 1000.0
-        location.properties['--pulsar-magnetic-field-decay-massscale'] = 0.025
-        location.properties['--pulsar-minimum-magnetic-field'] = 8.0
-        #location.properties['--orbital-period-min'] = 1.1
-        #location.properties['--orbital-period-max'] = 1000
-        location.properties['--kick-magnitude-sigma-CCSN-NS'] = 265.0
-        location.properties['--kick-magnitude-sigma-CCSN-BH'] = 265.0
-        location.properties['--fix-dimensionless-kick-magnitude'] = -1
-        location.properties['--kick-direction-power'] = 0.0
-        #location.properties['--random-seed'] = 0
-        location.properties['--mass-transfer-thermal-limit-C'] = 10.0
-        location.properties['--eddington-accretion-factor'] = 1
-        location.properties['--pisn-lower-limit'] = 60.0
-        location.properties['--pisn-upper-limit'] = 135.0
-        location.properties['--ppi-lower-limit'] = 35.0
-        location.properties['--ppi-upper-limit'] = 60.0
-        location.properties['--maximum-neutron-star-mass'] = 2.5
-        location.properties['--kick-magnitude-sigma-ECSN'] = 30.0
-        location.properties['--kick-magnitude-sigma-USSN'] = 30.0
-        location.properties['--kick-scaling-factor'] = 1.0
-        location.properties['--maximum-mass-donor-nandez-ivanova'] = 2.0
-        location.properties['--common-envelope-recombination-energy-density'] = 15000000000000.0
-        location.properties['--common-envelope-mass-accretion-max'] = 0.1
-        location.properties['--common-envelope-mass-accretion-min'] = 0.04
-        location.properties['--zeta-main-sequence'] = 2.0
-        location.properties['--zeta-radiative-envelope-giant'] = 6.5
-        location.properties['--kick-magnitude-max'] = -1.0
-        location.properties['--muller-mandel-kick-multiplier-BH'] = 200.0
-        location.properties['--muller-mandel-kick-multiplier-NS'] = 400.0
-        location.properties['--neutrino-mass-loss-BH-formation-value'] = 0.1
-        location.properties['--case-BB-stability-prescription'] = 'ALWAYS_STABLE'
-        location.properties['--chemically-homogeneous-evolution'] = 'PESSIMISTIC'
-        location.properties['--luminous-blue-variable-prescription'] = 'BELCZYNSKI'
-        location.properties['--mass-loss-prescription'] = 'VINK'
-        location.properties['--mass-transfer-angular-momentum-loss-prescription'] = 'ISOTROPIC'
-        location.properties['--mass-transfer-accretion-efficiency-prescription'] = 'THERMAL'
-        location.properties['--mass-transfer-rejuvenation-prescription'] = 'STARTRACK'
-        #location.properties['--initial-mass-function'] = 'KROUPA'
-        #location.properties['--semi-major-axis-distribution'] = 'FLATINLOG'
-        #location.properties['--orbital-period-distribution'] = 'FLATINLOG'
-        #location.properties['--mass-ratio-distribution'] = 'FLAT'
-        #location.properties['--eccentricity-distribution'] = 'ZERO'
-        #location.properties['--metallicity-distribution'] = 'ZSOLAR'
-        location.properties['--rotational-velocity-distribution'] = 'ZERO'
-        location.properties['--remnant-mass-prescription'] = 'FRYER2012'
-        location.properties['--fryer-supernova-engine'] = 'DELAYED'
-        location.properties['--black-hole-kicks'] = 'FALLBACK'
-        location.properties['--kick-magnitude-distribution'] = 'MAXWELLIAN'
-        location.properties['--kick-direction'] = 'ISOTROPIC'
-        #location.properties['--output-path'] = /home/rwillcox/astro/compas/COMPAS/defaults
-        location.properties['--common-envelope-lambda-prescription'] = 'LAMBDA_NANJING'
-        location.properties['--stellar-zeta-prescription'] = 'SOBERMAN'
-        location.properties['--mass-transfer-thermal-limit-accretor'] = 'CFACTOR'
-        location.properties['--pulsational-pair-instability-prescription'] = 'MARCHANT'
-        location.properties['--neutron-star-equation-of-state'] = 'SSE'
-        location.properties['--pulsar-birth-magnetic-field-distribution'] = 'ZERO'
-        location.properties['--pulsar-birth-spin-period-distribution'] = 'ZERO'
-        location.properties['--common-envelope-mass-accretion-prescription'] = 'ZERO'
-        location.properties['--envelope-state-prescription'] = 'LEGACY'
-        location.properties['--neutrino-mass-loss-BH-formation'] = 'FIXED_MASS'
 
 
 
