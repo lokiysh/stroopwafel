@@ -7,6 +7,9 @@ from .constants import *
 import math
 
 # THIS FUNCTION IS VERY COMPAS SPECIFIC
+# COMPAS uses grid files that requires the property name followed by its value.
+# When using a different external code, make sure adapt this function to make
+# sure the generated samples can be read and processed
 def generate_grid(locations, filename):
     """
     Function which generated a txt file with the locations specified.
@@ -95,6 +98,7 @@ def read_samples(filename, dimensions, only_hits = False):
         for dimension in dimensions:
             dimensions_hash[dimension.name] = dimension
         locations = []
+        # Collect the samples and convert them to a location object
         for sample in samples:
             # Make sure to only read in the hits if requested
             if only_hits and int(sample['is_hit']) == 0:
@@ -140,7 +144,7 @@ def run_code(command, batch_num, output_folder, debug = False, run_on_helios = T
     OUT:
         subprocess : An instance of subprocess created after running the command
     """
-    # To be honest, I'm not sure what this is exactly doing (I'll try to figure out later)
+    # To be honest, I'm not sure what this is exactly doing
     if command != None:
         if not debug:
             stdout = subprocess.PIPE
@@ -267,7 +271,7 @@ def calculate_roche_lobe_radius(mass1, mass2):
     q = mass1 / mass2 # calculate the mass ratio
     return 0.49 / (0.6 + pow(q, -2.0 / 3.0) * math.log(1.0 + pow(q, 1.0 / 3.0)))
 
-# AGAIN THIS WEIRD KROUPA STUFF THAT NEEDS FIGURING OUT
+# AGAIN THIS COMPLICATED KROUPA STUFF
 def inverse_back(dimension, inverse):
     """
     IN:

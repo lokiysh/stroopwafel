@@ -44,10 +44,10 @@ class InitialDistribution(NDimensionalDistribution):
         mask = np.ones(num_samples, dtype = bool)
         headers = sorted(self.dimensions, key = lambda d: d.name)
         samples = []
-        # For each dimension, draw samples and check whether they are within their given min and max value
+        # For each dimension, draw samples and check whether they are within their given minimum and maximum value bounds
         for dimension in headers:
             current_samples = dimension.run_sampler(num_samples)
-            mask &= dimension.is_sample_within_bounds(current_samples)
+            mask &= dimension.is_sample_within_bounds(current_samples) # mask the systems that are within the bounds
             samples.append(current_samples)
         samples = list(map(list, zip(*samples)))
         locations = [Location(dict(zip(headers, row)), {}) for row in samples]
@@ -73,7 +73,7 @@ class InitialDistribution(NDimensionalDistribution):
         rejected = num_samples - np.sum(mask) # samples rejected by sampling outside the property bounds
         locations = np.asarray(locations)[mask]
         [location.revert_variables_to_original_scales() for location in locations]
-        update_properties(locations, dimensions)
+        update_properties(locations, dimensions) # the update_properties() function is defined in the interface file
         rejected += rejected_systems(locations, dimensions) # samples rejected because the systems couldn't be evolved with the initial properties
         return rejected / num_samples
 
@@ -163,13 +163,13 @@ class Gaussian(NDimensionalDistribution):
         # The Kroupa mass function is more complicated.
         # STEPHEN, DO YOU KNOW WHAT HAPPENS HERE? I FORGOT
         if dimension.sampler.__name__ == sp.kroupa.__name__:
-            norm_factor = (ALPHA_IMF + 1) / (pow(dimension.max_value, ALPHA_IMF + 1) - pow(dimension.min_value, ALPHA_IMF + 1))
+            norm_factor = (ALPHA_IMF + 1) / (pow(dimension.max_value, ALPHA_IMF + 1) - pow(dimension.min_value, ALPHA_IMF + 1)) # normalizing constant
             inverse_value = (pow(norm_factor / value, 1 / -ALPHA_IMF) - pow(norm_factor / dimension.min_value, 1 / -ALPHA_IMF)) / \
             (pow(norm_factor / dimension.max_value, 1 / -ALPHA_IMF) - pow(norm_factor / dimension.min_value, 1 / -ALPHA_IMF))
             right_distance = abs(inverse_back(dimension, inverse_value + average_density_one_dim) - value)
             left_distance = abs(inverse_back(dimension, inverse_value - average_density_one_dim) - value)
             return max(right_distance, left_distance)
-        # All other prior distributions are simple functions and hence we can directly use the equation
+        # For prior distributions that are simple functions we can directly use the equation 11
         else:
             return average_density_one_dim / dimension.prior(dimension, value)
 
@@ -195,7 +195,7 @@ class Gaussian(NDimensionalDistribution):
             rejected += num_samples - np.sum(mask) # samples rejected by sampling outside the property bounds
             locations = np.asarray(locations)[mask]
             [location.revert_variables_to_original_scales() for location in locations]
-            update_properties(locations, dimensions)
+            update_properties(locations, dimensions) # the update_properties() function is defined in the interface file
             rejected += rejected_systems(locations, dimensions) # samples rejected because the systems couldn't be evolved with the initial properties
         return rejected / (num_samples * len(gaussians))
 
@@ -203,7 +203,7 @@ class Gaussian(NDimensionalDistribution):
     def calculate_probability_of_locations_from_distribution(self, locations, gaussians):
         """
         Given a list of locations, calculates the probability of drawing each location from the given gaussian.
-        These probabilities are used to compute the mixture weights after the end of the refinement phase
+        These probabilities are used to compute the mixture weights after the end of the refinement phase in sw.py and genais.py
         IN:
             locations (list(Location)) : list of locations
             gaussians (List(Gaussian)) : The gaussians to calculate the rejection rate

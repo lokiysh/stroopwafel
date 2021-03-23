@@ -124,5 +124,5 @@ class Location:
         """
         p = 1
         for dimension, value in self.dimensions.items():
-            p *= dimension.prior(dimension, value)
+            p *= dimension.prior(dimension, value) # the prior() function calculates the prior probability given the dimension and value
         return p
