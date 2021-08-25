@@ -18,7 +18,7 @@ To test if its installed, go to python3. On the terminal: <code>python3</code>.
 Inside the python prompt, <code>import stroopwafel</code> should not throw any errors.
 
 # Running
-Create an script similar to interface.py in the test directory. Make sure you have the external application executable (such as COMPAS) defined in this script. Provide the other details and functions and run it using <code>python filename.py</code>. 
+Create a script similar to interface_genais.py in the test directory. Make sure you have the external application executable (such as COMPAS) defined in this script. Provide the other details and functions and run it using <code>python filename.py</code>. 
 
 Note that stroopwafel is independent of the external application and does not have to reside in the same directory. 
 
