@@ -22,3 +22,6 @@ TOTAL_REJECTION_SAMPLES = 1e6
 NUM_GENERATIONS = 10
 MIN_ENTROPY_CHANGE = 0.01
 KAPPA = 1.0
+
+# Create global random seed, so it can be set and incremented in separate modules
+RANDOM_SEED = 0

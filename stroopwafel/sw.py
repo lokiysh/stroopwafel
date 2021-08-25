@@ -4,7 +4,7 @@ import shutil
 
 class Stroopwafel:
 
-    def __init__(self, total_num_systems, num_batches_in_parallel, num_samples_per_batch, output_folder, output_filename, debug = False, run_on_helios = True, mc_only = False):
+    def __init__(self, total_num_systems, num_batches_in_parallel, num_samples_per_batch, output_folder, output_filename, time_request=None, debug = False, run_on_helios = True, mc_only = False):
         self.total_num_systems = total_num_systems
         self.num_batches_in_parallel = num_batches_in_parallel
         self.num_samples_per_batch = num_samples_per_batch
@@ -13,6 +13,16 @@ class Stroopwafel:
         self.debug = debug
         self.run_on_helios = run_on_helios
         self.mc_only = mc_only
+        if time_request is not None:
+            self.time_request = time_request
+        else:
+            # Buffer 0.15s per binary on each node
+            ss = 0.15*self.total_num_systems/num_batches_in_parallel 
+            # Convert to DD-HH:MM:SS format
+            (dd, ss) = divmod(ss, 86400) # 60*60*24
+            (hh, ss) = divmod(ss, 3600)  # 60*60
+            (mm, ss) = divmod(ss, 60)
+            self.time_request = str(int(dd)) + '-' + str(int(hh)) + ':' + str(int(mm)) + ':' + str(int(ss))
 
     def update_fraction_explored(self):
         """
@@ -80,6 +90,8 @@ class Stroopwafel:
             if batch['process']:
                 returncode = batch['process'].wait()
             folder = os.path.join(self.output_folder, batch['output_container'])
+            if not os.path.exists(folder):
+                os.mkdir(folder)
             shutil.move(batch['grid_filename'], os.path.join(folder, 'grid_' + str(batch['number']) + '.csv'))
             [location.properties.update({'is_hit': 0}) for location in batch['samples']]
             hits = 0
@@ -150,7 +162,7 @@ class Stroopwafel:
                 current_batch['samples'] = locations
                 command = self.configure_code_run(current_batch)
                 generate_grid(locations, current_batch['grid_filename'])
-                current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)
+                current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.time_request, self.debug, self.run_on_helios)
                 batches.append(current_batch)
                 self.batch_num = self.batch_num + 1
             self.process_batches(batches, True)
@@ -203,7 +215,7 @@ class Stroopwafel:
                 current_batch['samples'] = locations_ref
                 command = self.configure_code_run(current_batch)
                 generate_grid(locations_ref, current_batch['grid_filename'])
-                current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)
+                current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.time_request, self.debug, self.run_on_helios)
                 batches.append(current_batch)
                 self.batch_num = self.batch_num + 1
             self.process_batches(batches, False)
