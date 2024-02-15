@@ -89,8 +89,10 @@ def read_samples(filename, dimensions, only_hits = False):
             dimensions_hash[dimension.name] = dimension
         locations = []
         for sample in samples:
+            #Lieke print('sample', sample)
             if only_hits and int(sample['is_hit']) == 0:
                 continue
+            #Lieke print('sample.items()', sample.items())
             sample.update((k, float(v)) for k, v in sample.items())
             locations.append(Location.create_location(dimensions_hash, sample))
         return locations
@@ -111,18 +113,23 @@ def generate_slurm_file(command, batch_num, output_folder):
     log_file = os.path.join(log_folder, "log_" + str(batch_num) + ".txt")
     writer = open(slurm_file, 'w')
     writer.write("#!/bin/bash\n")
-    writer.write("#SBATCH --mem-per-cpu=1024\n")
+    writer.write("#SBATCH --mem-per-cpu=2048\n")
     writer.write("#SBATCH --output=output.out\n")
     # Additions by Lieke Nov 2020
-    writer.write("#SBATCH -p shared\n")
-    writer.write("module load gsl\n")
-    writer.write("export CPP_INCLUDE_PATH=/n/home04/lvanson/Programs/lib/boost/include\n")
-    writer.write("export LD_LIBRARY_PATH=/n/home04/lvanson/Programs/lib/boost/lib:$LD_LIBRARY_PATH\n")
+    # writer.write("#SBATCH -p gen\n")
+    writer.write("#SBATCH -t 0-10:30\n")
+    writer.write("module load gsl boost hdf5 gcc python \n") # Lieke Feb 2024
+    # writer.write("module load Anaconda3/2020.11\n")
+    # writer.write("module load GCC/8.2.0-2.31.1 GSL/2.5\n")
+    # writer.write("module load  hdf5/1.8.12-fasrc08\n")
+    #writer.write("module load gsl\n")
+    # writer.write("export CPP_INCLUDE_PATH=/n/home04/lvanson/Programs/lib/boost/include\n")
+    # writer.write("export LD_LIBRARY_PATH=/n/home04/lvanson/Programs/lib/boost/lib:$LD_LIBRARY_PATH\n")
     writer.write(command + " > " + log_file + " \n")
     writer.close()
     return slurm_file
 
-def run_code(command, batch_num, output_folder, debug = False, run_on_helios = True):
+def run_code(command, batch_num, output_folder, debug = True, run_on_helios = True):
     """
     Function that runs the command specified on the command shell.
     IN:

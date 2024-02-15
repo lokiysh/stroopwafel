@@ -1,6 +1,9 @@
 import os
 from .utils import *
 import shutil
+import pandas as pd
+import h5py as h5
+
 
 class Stroopwafel:
 
@@ -80,21 +83,25 @@ class Stroopwafel:
             if batch['process']:
                 returncode = batch['process'].wait()
             folder = os.path.join(self.output_folder, batch['output_container'])
-            # Check if batch folder exists before you move the grid file 
-            if not os.path.exists(folder): 
+            # Check if batch folder exists before you move the grid file < Lieke
+            if not os.path.exists(folder):
+                print('Creating folder', folder) 
                 os.mkdir(folder) 
             shutil.move(batch['grid_filename'], os.path.join(folder, 'grid_' + str(batch['number']) + '.csv'))
             [location.properties.update({'is_hit': 0}) for location in batch['samples']]
             hits = 0
             if returncode >= 0 and self.interesting_systems_method is not None:
+                print('Lieke: returncode>0? ', returncode , 'self.interesting_systems_method', self.interesting_systems_method )
+                print('Lieke: batch', batch)
                 hits = self.interesting_systems_method(batch)
             if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems or returncode < 0:
                 #This batch is not needed anymore, delete the folder
+                print(' Lieke: !! This batch is not needed anymore, delete the folder !! ')
                 shutil.rmtree(os.path.join(self.output_folder, 'batch_' + str(batch['number'])))
                 self.batch_num = self.batch_num - 1
                 continue
             self.num_hits += hits
-            print_samples(batch['samples'], self.output_filename, 'a')
+            print_samples('Lieke: Next step ?', batch['samples'], self.output_filename, 'a')
             self.finished += self.num_samples_per_batch
             printProgressBar(self.finished, self.total_num_systems, prefix = 'progress', suffix = 'complete', length = 20)
             if is_exploration_phase:
@@ -156,6 +163,7 @@ class Stroopwafel:
                 current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)
                 batches.append(current_batch)
                 self.batch_num = self.batch_num + 1
+ 
             self.process_batches(batches, True)
         if not self.mc_only:
             print ("\nExploratory phase finished, found %d hits out of %d explored. Rate = %.6f (fexpl = %.4f)" %(self.num_hits, self.num_explored, self.num_hits / self.num_explored, self.fraction_explored))
@@ -168,6 +176,7 @@ class Stroopwafel:
         IN:
             n_dimensional_distribution_type(NDimensionalDistribution) : This tells stroopwafel what kind of distribution is to be adapted for refinment phase
         """
+        print('IN ADAPT')
         if self.num_explored != self.total_num_systems:
             if self.num_hits > 0:
                 hits = read_samples(self.output_filename, self.dimensions, only_hits = True)
