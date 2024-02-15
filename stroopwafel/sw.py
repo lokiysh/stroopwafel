@@ -80,26 +80,35 @@ class Stroopwafel:
             is_exploration_phase (Boolean) : Whether the given batches come from exploration phase or not
         """
         for batch in batches:
+            # assign the exit status of the subprocess to "returncode"
             if batch['process']:
                 returncode = batch['process'].wait()
+                
             folder = os.path.join(self.output_folder, batch['output_container'])
-            # Check if batch folder exists before you move the grid file < Lieke
-            if not os.path.exists(folder):
-                print('Creating folder', folder) 
-                os.mkdir(folder) 
+            
+            os.makedirs(folder, exist_ok=True)# Check if batch folder exists before you move the grid 
             shutil.move(batch['grid_filename'], os.path.join(folder, 'grid_' + str(batch['number']) + '.csv'))
+            
+            # Initialize the 'is_hit' to 0 for each sample in the batch 
             [location.properties.update({'is_hit': 0}) for location in batch['samples']]
             hits = 0
+            
+            # if you are still running, and the interesting_systems_method is defined, count hits using interesting_systems()
             if returncode >= 0 and self.interesting_systems_method is not None:
-                print('Lieke: returncode>0? ', returncode , 'self.interesting_systems_method', self.interesting_systems_method )
-                print('Lieke: batch', batch)
+                # interesting_systems_method is the function interesting_systems(batch) from stroopwafel_interface.py
+                print('Lieke: Calling Interesting systems for this batch')
                 hits = self.interesting_systems_method(batch)
-            if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems or returncode < 0:
-                #This batch is not needed anymore, delete the folder
-                print(' Lieke: !! This batch is not needed anymore, delete the folder !! ')
+                
+            
+            if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems or returncode < 0:                    
+                # Delete the folder associated with the current batch
+                print(' This batch is not needed anymore, delete the folder')
                 shutil.rmtree(os.path.join(self.output_folder, 'batch_' + str(batch['number'])))
+                
                 self.batch_num = self.batch_num - 1
+                # Continue to next batch
                 continue
+            
             self.num_hits += hits
             print_samples('Lieke: Next step ?', batch['samples'], self.output_filename, 'a')
             self.finished += self.num_samples_per_batch
@@ -137,34 +146,73 @@ class Stroopwafel:
             initial_pdf (NDimensionalDistribution) : An instance of NDimensionalDistribution showing how to sample from in the exploration phase
         """
         if not self.mc_only:
+            # Calculate the rejection rate of the initial probability density function (pdf)
             self.prior_fraction_rejected = intial_pdf.calculate_rejection_rate(self.update_properties_method, self.rejected_systems_method, self.dimensions)
+            # Log the rejection rate
             print_logs(self.output_folder, "prior_fraction_rejected", self.prior_fraction_rejected)
         else:
+            # If running in Monte Carlo only mode, set the rejection rate to 0
             self.prior_fraction_rejected = 0
+
+        # Continue exploring while the condition is met
         while self.should_continue_exploring():
             batches = []
+            
+            # Loop over the number of batches to run in parallel
             for batch in range(self.num_batches_in_parallel):
+                # Initialize a dictionary for the current batch
                 current_batch = dict()
                 current_batch['number'] = self.batch_num
+                
+                # Calculate the number of samples, accounting for the rejection rate
                 num_samples = int(2 * np.ceil(self.num_samples_per_batch / (1 - self.prior_fraction_rejected)))
+                
+                # Draw samples from the initial pdf (distributions.InitialDistribution(dimensions)) that is defined in the stroopwafel_interface
+                # Note Location objects represent a point in N-Dimensional space (see Location class in classes.py)
                 (locations, mask) = intial_pdf.run_sampler(num_samples)
+                
+                # ??
                 [location.revert_variables_to_original_scales() for location in locations]
+                
+                # If an update properties method is provided, apply it to the locations
                 if self.update_properties_method != None:
                     self.update_properties_method(locations, self.dimensions)
+                    
+                # If a rejected systems method is provided, apply it to the locations
                 if self.rejected_systems_method != None:
                     self.rejected_systems_method(locations, self.dimensions)
+                    
+                # Filter out the locations that are rejected
                 locations[:] = [location for location in locations if location.properties.get('is_rejected', 0) == 0]
+                # Lieke: no idea why we need to randomize here?
                 np.random.shuffle(locations)
+                
+                # Trim the locations list to the desired number of samples per batch
                 locations = locations[:self.num_samples_per_batch]
+                # Remove the 'is_rejected' from each location
                 [location.properties.pop('is_rejected', None) for location in locations]
+                # Add the points in N-dimensional space to the current batch
                 current_batch['samples'] = locations
+                
+                # Configure the code run for the current batch
+                print('Lieke: Configuring the code run for the current batch')
                 command = self.configure_code_run(current_batch)
+                print('Lieke: resulting command:', command)
+                
+                # Generate a COMPAS batch grid for the locations ()
                 generate_grid(locations, current_batch['grid_filename'])
+                
+                # Run the grid and store the process in the current batch
                 current_batch['process'] = run_code(command, current_batch['number'], self.output_folder, self.debug, self.run_on_helios)
+                
+                # Add the current batch to the batches list and increment the batch number
                 batches.append(current_batch)
                 self.batch_num = self.batch_num + 1
  
+            # Process the batches in the exploration phase
+            print('Lieke: Processing the batches in the exploration phase')
             self.process_batches(batches, True)
+            
         if not self.mc_only:
             print ("\nExploratory phase finished, found %d hits out of %d explored. Rate = %.6f (fexpl = %.4f)" %(self.num_hits, self.num_explored, self.num_hits / self.num_explored, self.fraction_explored))
             print_logs(self.output_folder, "num_explored", self.num_explored)

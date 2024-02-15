@@ -15,19 +15,37 @@ def generate_grid(locations, filename):
     OUT:
         generates file with name filename with the given locations and saves to the disk
     """
+    print('Lieke generating grid for all the locations in your batch')
+    
+    # Initialize an empty list for the grid
     grid = []
+
+    # Loop over each location in the locations list
     for location in locations:
-        current_location = []
+        current_location = [] # Initialize an empty list for the current location
+
+        # Loop over each dimension; things you are optimizing for (e.g. --initial-mass-1) 
         for key, value in location.dimensions.items():
+            # If the dimension should be printed, add it to the current location list
             if key.should_print:
                 current_location.append(key.name + ' ' + str(value))
+
+        # Loop over each property; other necessary params, which you are not optimizing for (e.g. --metallicity) 
         for key, value in location.properties.items():
+            # If the property is 'generation' or 'gaussian', skip it
             if key in ['generation', 'gaussian']:
                 continue
-            current_location.append(key + ' ' + str(value))
+            # Otherwise, add it to the current location list
+            else:
+                current_location.append(key + ' ' + str(value))
+
+        # Add the current location list to the grid list
         grid.append(current_location)
+        
     DELIMITER = ' '
+    print('Lieke you are trying to saving', filename)
     np.savetxt(filename, grid, fmt = "%s", delimiter = DELIMITER, comments = '')
+    
 
 #copied from stack overflow
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '|', autosize = False):
@@ -114,20 +132,20 @@ def generate_slurm_file(command, batch_num, output_folder):
     writer = open(slurm_file, 'w')
     writer.write("#!/bin/bash\n")
     writer.write("#SBATCH --mem-per-cpu=2048\n")
-    writer.write("#SBATCH --output=output.out\n")
-    # Additions by Lieke Nov 2020
-    # writer.write("#SBATCH -p gen\n")
+    # Make sure to store the out and err for each batch
+    writer.write(f"#SBATCH --output={slurm_folder}/batch_{batch_num}.out\n")
+    writer.write(f"#SBATCH --error={slurm_folder}/batch_{batch_num}.err\n")
     writer.write("#SBATCH -t 0-10:30\n")
-    writer.write("module load gsl boost hdf5 gcc python \n") # Lieke Feb 2024
-    # writer.write("module load Anaconda3/2020.11\n")
-    # writer.write("module load GCC/8.2.0-2.31.1 GSL/2.5\n")
-    # writer.write("module load  hdf5/1.8.12-fasrc08\n")
-    #writer.write("module load gsl\n")
-    # writer.write("export CPP_INCLUDE_PATH=/n/home04/lvanson/Programs/lib/boost/include\n")
-    # writer.write("export LD_LIBRARY_PATH=/n/home04/lvanson/Programs/lib/boost/lib:$LD_LIBRARY_PATH\n")
+    # Lieke: Customizing the slurm file (your modules and partitions might be different)!!!
+    writer.write("#SBATCH -p gen\n")
+    writer.write("module load gsl boost hdf5 gcc python \n")
+    ##
     writer.write(command + " > " + log_file + " \n")
     writer.close()
     return slurm_file
+
+
+
 
 def run_code(command, batch_num, output_folder, debug = True, run_on_helios = True):
     """
@@ -142,21 +160,93 @@ def run_code(command, batch_num, output_folder, debug = True, run_on_helios = Tr
         subprocess : An instance of subprocess created after running the command
     """
     if command != None:
-        if not debug:
-            stdout = subprocess.PIPE
-            stderr = subprocess.PIPE
-        else:
-            stdout = stderr = None
+        stdout = subprocess.PIPE
+        stderr = subprocess.PIPE
+        
         command_to_run = " ".join(str(v) for v in command)
+        
         if run_on_helios:
             slurm_file = generate_slurm_file(" ".join(str(v) for v in command), batch_num, output_folder)
+            
             command_to_run = "sbatch -W -Q " + slurm_file
         else:
             log_folder = get_or_create_folder(output_folder, 'logs')
             log_file = os.path.join(log_folder, "log_" + str(batch_num) + ".txt")
             command_to_run = command_to_run + " > " + log_file
         process = subprocess.Popen(command_to_run, shell = True, stdout = stdout, stderr = stderr)
+        
         return process
+
+# def run_code(command, batch_num, output_folder, debug = True, run_on_helios = True):
+#     """
+#     Function that runs the command specified on the command shell.
+#     IN:
+#         command list(String): A list of commands to be triggered along with the options
+#         batch_num (int) : The current batch number to generate the filename
+#         output_folder (Path) : Where to generate the output
+#         debug (Boolean) : If true will print stuff to console
+#         run_on_helios (Boolean) : If true will generate slurm file to run on helios
+#     OUT:
+#         subprocess : An instance of subprocess created after running the command
+#     """
+#     if command != None:
+#         if not debug:
+#             stdout = subprocess.PIPE
+#             stderr = subprocess.PIPE
+#         else:
+#             print(" !!!!!!!!!!!!  in the debug method ", command)
+#             stdout = stderr = None
+#         command_to_run = " ".join(str(v) for v in command)
+#         if run_on_helios:
+#             slurm_file = generate_slurm_file(" ".join(str(v) for v in command), batch_num, output_folder)
+            
+#             command_to_run = "sbatch -W -Q " + slurm_file
+#         else:
+#             log_folder = get_or_create_folder(output_folder, 'logs')
+#             log_file = os.path.join(log_folder, "log_" + str(batch_num) + ".txt")
+#             command_to_run = command_to_run + " > " + log_file
+#         process = subprocess.Popen(command_to_run, shell = True, stdout = stdout, stderr = stderr)
+        
+#         return process
+
+# def run_code(command, batch_num, output_folder, run_on_helios = True):
+#     """
+#     Function that runs the command specified on the command shell.
+#     IN:
+#         command list(String): A list of commands to be triggered along with the options
+#         batch_num (int) : The current batch number to generate the filename
+#         output_folder (Path) : Where to generate the output
+#         debug (Boolean) : If true will print stuff to console
+#         run_on_helios (Boolean) : If true will generate slurm file to run on HPC
+#     OUT:
+#         subprocess : An instance of subprocess created after running the command
+#     """
+#     if command != None:
+#         command_to_run = " ".join(str(v) for v in command)
+        
+#         if run_on_helios:
+#             slurm_file = generate_slurm_file(" ".join(str(v) for v in command), batch_num, output_folder)
+#             command_to_run = "sbatch -W -Q " + slurm_file
+            
+#             # Define the paths for the output and error files
+#             out_file = os.path.join(output_folder, "out.txt")
+#             err_file = os.path.join(output_folder, "err.txt")
+#             # Open the files in append mode
+#             with open(out_file, "a") as out, open(err_file, "a") as err:
+#                 # Run the command as a subprocess and redirect stdout and stderr to the files
+#                 process = subprocess.Popen(command_to_run, shell=True, stdout=out, stderr=err)
+
+#         else:
+#             log_folder = get_or_create_folder(output_folder, 'logs')
+#             log_file = os.path.join(log_folder, "log_" + str(batch_num) + ".txt")
+#             command_to_run = command_to_run + " > " + log_file
+#             # Open the log file in append mode
+#             with open(log_file, "a") as log:
+#                 # Run the command as a subprocess and redirect stdout and stderr to the log file
+#                 process = subprocess.Popen(command_to_run, shell=True, stdout=log, stderr=log)
+#             # process = subprocess.Popen(command_to_run, shell = True, stdout = stdout, stderr = stderr)
+#         print('')
+#         return process
 
 def get_slurm_output(output_folder, batch_num):
     """
