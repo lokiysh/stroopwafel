@@ -84,6 +84,14 @@ class Stroopwafel:
             if batch['process']:
                 returncode = batch['process'].wait()
                 
+            # If the return code is not 0, print the error output
+            if returncode != 0:
+                print('Lieke: Error in the batch (I think??), print the error output')
+                 # Open the error file and print its content
+                err_file = os.path.join(self.output_folder, f"slurms/batch_{batch['number']}.err")
+                with open(err_file, "r") as file:
+                    print(file.read())
+                    
             folder = os.path.join(self.output_folder, batch['output_container'])
             
             os.makedirs(folder, exist_ok=True)# Check if batch folder exists before you move the grid 
@@ -98,7 +106,6 @@ class Stroopwafel:
                 # interesting_systems_method is the function interesting_systems(batch) from stroopwafel_interface.py
                 print('Lieke: Calling Interesting systems for this batch')
                 hits = self.interesting_systems_method(batch)
-                
             
             if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems or returncode < 0:                    
                 # Delete the folder associated with the current batch
@@ -110,9 +117,10 @@ class Stroopwafel:
                 continue
             
             self.num_hits += hits
-            print_samples('Lieke: Next step ?', batch['samples'], self.output_filename, 'a')
+
             self.finished += self.num_samples_per_batch
             printProgressBar(self.finished, self.total_num_systems, prefix = 'progress', suffix = 'complete', length = 20)
+            
             if is_exploration_phase:
                 self.num_explored += self.num_samples_per_batch
                 self.update_fraction_explored()
@@ -184,7 +192,7 @@ class Stroopwafel:
                     
                 # Filter out the locations that are rejected
                 locations[:] = [location for location in locations if location.properties.get('is_rejected', 0) == 0]
-                # Lieke: no idea why we need to randomize here?
+                # no idea why we need to randomize here? -Lieke-
                 np.random.shuffle(locations)
                 
                 # Trim the locations list to the desired number of samples per batch
@@ -195,9 +203,7 @@ class Stroopwafel:
                 current_batch['samples'] = locations
                 
                 # Configure the code run for the current batch
-                print('Lieke: Configuring the code run for the current batch')
                 command = self.configure_code_run(current_batch)
-                print('Lieke: resulting command:', command)
                 
                 # Generate a COMPAS batch grid for the locations ()
                 generate_grid(locations, current_batch['grid_filename'])
