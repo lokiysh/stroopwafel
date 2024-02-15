@@ -75,7 +75,7 @@ def configure_code_run(batch):
     batch_num = batch['number']
     grid_filename = os.path.join(output_folder, 'grid_' + str(batch_num) + '.csv')
     output_container = 'batch_' + str(batch_num)
-    compas_args = [compas_executable, "--grid", '"' + grid_filename + '"', '--outputPath', '"' + output_folder + '"', '--logfile-delimiter', 'COMMA', '--output-container', output_container, '--random-seed', np.random.randint(2, 2**63 - 1)]
+    compas_args = [compas_executable, "--grid", '"' + grid_filename + '"', '--outputPath', '"' + output_folder + '"', '--logfile-type', 'CSV', '--output-container', output_container, '--random-seed', np.random.randint(2, 2**63 - 1)]
     batch['grid_filename'] = grid_filename
     batch['output_container'] = output_container
     return compas_args
