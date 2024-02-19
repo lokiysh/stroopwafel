@@ -84,14 +84,6 @@ class Stroopwafel:
             if batch['process']:
                 returncode = batch['process'].wait()
                 
-            # If the return code is not 0, print the error output
-            if returncode != 0:
-                print('Lieke: Error in the batch (I think??), print the error output')
-                 # Open the error file and print its content
-                err_file = os.path.join(self.output_folder, f"slurms/batch_{batch['number']}.err")
-                with open(err_file, "r") as file:
-                    print(file.read())
-                    
             folder = os.path.join(self.output_folder, batch['output_container'])
             
             os.makedirs(folder, exist_ok=True)# Check if batch folder exists before you move the grid 
@@ -104,7 +96,6 @@ class Stroopwafel:
             # if you are still running, and the interesting_systems_method is defined, count hits using interesting_systems()
             if returncode >= 0 and self.interesting_systems_method is not None:
                 # interesting_systems_method is the function interesting_systems(batch) from stroopwafel_interface.py
-                print('Lieke: Calling Interesting systems for this batch')
                 hits = self.interesting_systems_method(batch)
             
             if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems or returncode < 0:                    
