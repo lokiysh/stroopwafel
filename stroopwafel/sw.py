@@ -19,13 +19,16 @@ class Stroopwafel:
 
     def update_fraction_explored(self):
         """
-        Function which updates the fraction of region which is already explored
+        Function to determin the fraction of samples that should be in the exploration phase
+        This sets how long the exploration phase will last
+        Equation 18 in Broekgaarden et al. 2019
         """
         unidentified_region_weight = 1.0 / (self.fraction_explored * self.total_num_systems)
         target_rate = float(self.num_hits) / self.num_explored
         numerator = target_rate * (np.sqrt(1. - target_rate) - np.sqrt(unidentified_region_weight))
         denominator = np.sqrt(1. - target_rate) * (np.sqrt(unidentified_region_weight * (1. - target_rate)) + target_rate)
         self.fraction_explored = 1 - numerator / denominator
+        
 
     def should_continue_exploring(self):
         """
@@ -33,9 +36,14 @@ class Stroopwafel:
         OUT:
             bool : boolean value telling If we should continue exploring or not
         """
+        # If MC only, continue until all systems are explored
         if self.mc_only:
             return self.num_explored < self.total_num_systems
-        return self.num_explored / self.total_num_systems < self.fraction_explored
+        # Else, continue until the fraction explored is bigger than the fraction of the space we want to explore
+        else:
+            print('Lieke: self.num_explored', self.num_explored, 'self.total_num_systems', self.total_num_systems)
+            print('should continue if self.num_explored / self.total_num_systems', self.num_explored / self.total_num_systems,' < self.fraction_explored ?', self.fraction_explored)
+            return self.num_explored / self.total_num_systems < self.fraction_explored
 
     def determine_rate(self, locations):
         """
@@ -100,21 +108,28 @@ class Stroopwafel:
             
             if (is_exploration_phase and not self.should_continue_exploring()) or self.finished >= self.total_num_systems or returncode < 0:                    
                 # Delete the folder associated with the current batch
-                print(' This batch is not needed anymore, delete the folder')
+                print(f"This batch {batch['number']} is not needed anymore, delete the folder")
                 shutil.rmtree(os.path.join(self.output_folder, 'batch_' + str(batch['number'])))
-                
                 self.batch_num = self.batch_num - 1
+                
                 # Continue to next batch
                 continue
             
+            # Save the hits to the output file
             self.num_hits += hits
-
+            print_samples(batch['samples'], self.output_filename, 'a')
+            
             self.finished += self.num_samples_per_batch
             printProgressBar(self.finished, self.total_num_systems, prefix = 'progress', suffix = 'complete', length = 20)
             
+            # If you are in the exploration phase, update the f_exp to determine length of exploration phase
             if is_exploration_phase:
+                print('Lieke: you are in the exploration phase, and are going to update self.fraction_explored ', self.fraction_explored)
                 self.num_explored += self.num_samples_per_batch
                 self.update_fraction_explored()
+                print('self.fraction_explored', self.fraction_explored)
+                
+            # If you are in the refinement phase, update the number of samples to be refined
             else:
                 self.num_to_be_refined -= self.num_samples_per_batch
 
@@ -153,7 +168,7 @@ class Stroopwafel:
             # If running in Monte Carlo only mode, set the rejection rate to 0
             self.prior_fraction_rejected = 0
 
-        # Continue exploring while the condition is met
+        # Continue exploring while the real fraction explored is smaller than some fraction representing the fraction of the space that we want to explore
         while self.should_continue_exploring():
             batches = []
             
@@ -207,7 +222,7 @@ class Stroopwafel:
                 self.batch_num = self.batch_num + 1
  
             # Process the batches in the exploration phase
-            print('Lieke: Processing the batches in the exploration phase')
+            print('Processing the batches in the exploration phase')
             self.process_batches(batches, True)
             
         if not self.mc_only:
@@ -221,23 +236,50 @@ class Stroopwafel:
         IN:
             n_dimensional_distribution_type(NDimensionalDistribution) : This tells stroopwafel what kind of distribution is to be adapted for refinment phase
         """
-        print('IN ADAPT')
+        print('IN ADAPT', 'self.num_explored', self.num_explored, 'self.total_num_systems', self.total_num_systems)
         if self.num_explored != self.total_num_systems:
+                        
             if self.num_hits > 0:
+                # Read the samples from the output file and filter only the hits
                 hits = read_samples(self.output_filename, self.dimensions, only_hits = True)
+
+                # Transform the variables of each hit to new scales
                 [location.transform_variables_to_new_scales() for location in hits]
+
+                # Calculate the average density in one dimension
                 average_density_one_dim = 1.0 / np.power(self.num_explored, 1.0 / len(self.dimensions))
+                
+                # Draw the adapted distributions based on the hits and the average density
                 self.adapted_distributions = n_dimensional_distribution_type.draw_distributions(hits, average_density_one_dim)
+
+                # Print the adapted distributions to a CSV file in the output folder
                 print_distributions(os.path.join(self.output_folder, 'distributions.csv'), self.adapted_distributions)
+
+                # Calculate the rejection rate of the adapted distributions
                 self.distribution_rejection_rate = n_dimensional_distribution_type.calculate_rejection_rate(self.adapted_distributions, self.update_properties_method, self.rejected_systems_method, self.dimensions)
-                print_logs(self.output_folder, "distribution_rejection_rate", self.distribution_rejection_rate)
-            print ("Adaptation phase finished!")
+
+                # Print the rejection rate to a log file in the output folder
+                print_logs(self.output_folder, "distribution_rejection_rate", self.distribution_rejection_rate)   
+                
+                print ("Adaptation phase finished!")
+            else:
+                print (f"No hits found self.num_hits = {self.num_hits}, adaptation phase not needed")
+                # self.adapted_distributions = []
+                # self.distribution_rejection_rate = 0
+                # print_logs(self.output_folder, "distribution_rejection_rate", self.distribution_rejection_rate)
+            
+        else:
+            print (f"Adaptation phase not needed: self.num_explored {self.num_explored} == self.total_num_systems {self.total_num_systems}" )
                 
     def refine(self):
         """
         Refinement phase of stroopwafel
         """
+        print('IN REFINE', 'self.num_explored', self.num_explored, 'self.total_num_systems', self.total_num_systems)
+        
         self.num_to_be_refined = self.total_num_systems - self.num_explored
+        print('self.num_to_be_refined', self.num_to_be_refined)
+        
         while self.num_to_be_refined > 0:
             batches = []
             for batch in range(min(self.num_batches_in_parallel, int(self.num_to_be_refined / self.num_samples_per_batch))):

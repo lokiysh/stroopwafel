@@ -69,7 +69,7 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
 
 def print_samples(samples, filename, mode):
     """
-    Function that prints all the hits to a file
+    Function that saves all the hits to a file
     IN:
         samples(list(Location)): All the samples that need to be printed
         filename (String) : The filename that will be saved
