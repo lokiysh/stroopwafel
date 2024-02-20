@@ -126,13 +126,13 @@ def generate_slurm_file(command, batch_num, output_folder):
     log_file = os.path.join(log_folder, "log_" + str(batch_num) + ".txt")
     writer = open(slurm_file, 'w')
     writer.write("#!/bin/bash\n")
-    writer.write("#SBATCH --mem-per-cpu=2048\n")
+    writer.write("#SBATCH --mem-per-cpu=4G\n")
     # Make sure to store the out and err for each batch
     writer.write(f"#SBATCH --output={slurm_folder}/batch_{batch_num}.out\n")
     writer.write(f"#SBATCH --error={slurm_folder}/batch_{batch_num}.err\n")
-    writer.write("#SBATCH -t 0-10:30\n")
+    writer.write("#SBATCH -t 0-04:00\n") # max 3 hours (which is a very high upper boud)
     # Lieke: Customizing the slurm file (your modules and partitions might be different)!!!
-    writer.write("#SBATCH -p gen, cca \n")
+    writer.write("#SBATCH -p cca,gen,genx\n")
     writer.write("module load gsl boost hdf5 gcc python \n")
     ##
     writer.write(command + " > " + log_file + " \n")
