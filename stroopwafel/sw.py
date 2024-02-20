@@ -20,7 +20,7 @@ class Stroopwafel:
     def update_fraction_explored(self):
         """
         Function to determin the fraction of samples that should be in the exploration phase
-        This sets how long the exploration phase will last
+        This sets how long the exploration phase will last 
         Equation 18 in Broekgaarden et al. 2019
         """
         unidentified_region_weight = 1.0 / (self.fraction_explored * self.total_num_systems)
@@ -33,16 +33,15 @@ class Stroopwafel:
     def should_continue_exploring(self):
         """
         Function that estimates if we should continue exploring or are we ready
+        Note self.fraction_explored only goes down if there are hits
         OUT:
             bool : boolean value telling If we should continue exploring or not
         """
         # If MC only, continue until all systems are explored
         if self.mc_only:
             return self.num_explored < self.total_num_systems
-        # Else, continue until the fraction explored is bigger than the fraction of the space we want to explore
+        # Else, continue until the fraction explored is bigger than the fraction of the space we want/need to explore
         else:
-            print('Lieke: self.num_explored', self.num_explored, 'self.total_num_systems', self.total_num_systems)
-            print('should continue if self.num_explored / self.total_num_systems', self.num_explored / self.total_num_systems,' < self.fraction_explored ?', self.fraction_explored)
             return self.num_explored / self.total_num_systems < self.fraction_explored
 
     def determine_rate(self, locations):
@@ -124,10 +123,8 @@ class Stroopwafel:
             
             # If you are in the exploration phase, update the f_exp to determine length of exploration phase
             if is_exploration_phase:
-                print('Lieke: you are in the exploration phase, and are going to update self.fraction_explored ', self.fraction_explored)
                 self.num_explored += self.num_samples_per_batch
                 self.update_fraction_explored()
-                print('self.fraction_explored', self.fraction_explored)
                 
             # If you are in the refinement phase, update the number of samples to be refined
             else:

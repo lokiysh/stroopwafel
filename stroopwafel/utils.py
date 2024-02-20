@@ -132,7 +132,7 @@ def generate_slurm_file(command, batch_num, output_folder):
     writer.write(f"#SBATCH --error={slurm_folder}/batch_{batch_num}.err\n")
     writer.write("#SBATCH -t 0-10:30\n")
     # Lieke: Customizing the slurm file (your modules and partitions might be different)!!!
-    writer.write("#SBATCH -p gen\n")
+    writer.write("#SBATCH -p gen, cca \n")
     writer.write("module load gsl boost hdf5 gcc python \n")
     ##
     writer.write(command + " > " + log_file + " \n")
