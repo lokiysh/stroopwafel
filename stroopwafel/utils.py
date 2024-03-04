@@ -127,19 +127,16 @@ def generate_slurm_file(command, batch_num, output_folder):
     writer = open(slurm_file, 'w')
     writer.write("#!/bin/bash\n")
     writer.write("#SBATCH --mem=4G\n")
-    # Make sure to store the out and err for each batch
-    writer.write(f"#SBATCH --output={slurm_folder}/batch_{batch_num}.out\n")
-    writer.write(f"#SBATCH --error={slurm_folder}/batch_{batch_num}.err\n")
-    writer.write("#SBATCH -t 0-04:00\n") # max  hours (which is a very high upper boud)
+    # writer.write(f"#SBATCH --output={slurm_folder}/batch_{batch_num}.out\n")
+    # writer.write(f"#SBATCH --error={slurm_folder}/batch_{batch_num}.err\n")
+    writer.write("#SBATCH -t 0-04:00:00\n") # max 4 hours (which is a very high upper boud)
     # Lieke: Customizing the slurm file (your modules and partitions might be different)!!!
-    writer.write("#SBATCH -p genx \n") # genx is for  small serial jobs 
+    # writer.write("#SBATCH -p genx \n") # genx is for  small serial jobs 
     writer.write("module load gsl boost hdf5 gcc python \n")
     ##
-    writer.write(command + " > " + log_file + " \n")
+    writer.write(f"{command} >  {log_file}  2> {slurm_folder}/batch_{batch_num}.err  \n")
     writer.close()
     return slurm_file
-
-
 
 
 def run_code(command, batch_num, output_folder, debug = True, run_on_helios = True):
@@ -163,7 +160,9 @@ def run_code(command, batch_num, output_folder, debug = True, run_on_helios = Tr
         if run_on_helios:
             slurm_file = generate_slurm_file(" ".join(str(v) for v in command), batch_num, output_folder)
             
-            command_to_run = "sbatch -W -Q " + slurm_file
+            # command_to_run = "sbatch -W -Q " + slurm_file
+            # srun in stead of sbatch will use already allocated resources to run each subcommand
+            command_to_run = "srun -n 1 bash " + slurm_file # suggested by NJC 
         else:
             log_folder = get_or_create_folder(output_folder, 'logs')
             log_file = os.path.join(log_folder, "log_" + str(batch_num) + ".txt")
