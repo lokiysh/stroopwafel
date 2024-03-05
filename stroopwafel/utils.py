@@ -162,7 +162,7 @@ def run_code(command, batch_num, output_folder, debug = True, run_on_helios = Tr
             
             # command_to_run = "sbatch -W -Q " + slurm_file
             # srun in stead of sbatch will use already allocated resources to run each subcommand
-            command_to_run = "srun -n 1 bash " + slurm_file # suggested by NJC 
+            command_to_run = "srun -Q -n 1 -c 1 bash " + slurm_file # suggested by NJC 
         else:
             log_folder = get_or_create_folder(output_folder, 'logs')
             log_file = os.path.join(log_folder, "log_" + str(batch_num) + ".txt")
